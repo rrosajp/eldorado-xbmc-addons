@@ -137,14 +137,29 @@ elif mode == 'plinkettreviews':
 elif mode == 'halfbag':
     url = addon.queries['url']
     html = get_http_error(url)
+    
+    halfbag = re.search('<li id="menu-item-527"(.+?)</ul>', html, re.DOTALL)
+    if halfbag:
+        match = re.compile('<a href="(.+?)" >(.+?)</a></li>').findall(halfbag.group(0))
+        for link, name in match:
+            addon.add_directory({'mode': 'halfbag-episodes', 'url': link}, {'title': name})
 
+
+elif mode == 'halfbag-episodes':
+    url = addon.queries['url']
+    html = get_http_error(url)
     match = re.compile('<td width=270><a href="(.+?)" ><img src="(.+?)"></a></td>').findall(html)
     
-    episodenum = 1
     for link, thumb in match:
-        addon.add_video_item({'url': link},{'title':'Episode ' + str(episodenum)},img=thumb)
-        episodenum += 1
-    
+        episodenum = re.search('([0-9]+)[.]jpg', thumb)
+        if episodenum:
+            episode_name = 'Episode ' + str(episodenum.group(1))
+        else:
+            filename = re.search('[^/]+$', thumb).group(0)
+            episode_name = re.search('(.+?)[.]jpg', filename).group(1).replace('_',' ').title()
+        addon.add_video_item({'url': link},{'title': episode_name},img=thumb)
+
+
 elif mode == 'featurefilms':
     url = addon.queries['url']
     html = get_http_error(url)
