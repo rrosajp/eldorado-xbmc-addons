@@ -1,2 +1,10 @@
-[B]Version 1.0.0[/B]
-- Initial version
+v0.0.8 (Monday, 16 April 2012):
+  - Fixed small formatting changes in HITB section
+
+v0.0.7 :
+  - Updated Half In the Bag section for new 2011/2012 episode layout
+  - Now getting proper episode name/number for HITB
+
+v0.0.6 (Thursday, 26 January 2012):
+  - Updated to work with the latest t0mm0 common library
+ 
