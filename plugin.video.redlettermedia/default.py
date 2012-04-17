@@ -140,7 +140,7 @@ elif mode == 'halfbag':
     
     halfbag = re.search('<li id="menu-item-527"(.+?)</ul>', html, re.DOTALL)
     if halfbag:
-        match = re.compile('<a href="(.+?)" >(.+?)</a></li>').findall(halfbag.group(0))
+        match = re.compile('<a href="(.+?)">(.+?)</a></li>').findall(halfbag.group(0))
         for link, name in match:
             addon.add_directory({'mode': 'halfbag-episodes', 'url': link}, {'title': name})
 
@@ -148,7 +148,7 @@ elif mode == 'halfbag':
 elif mode == 'halfbag-episodes':
     url = addon.queries['url']
     html = get_http_error(url)
-    match = re.compile('<td width=270><a href="(.+?)" ><img src="(.+?)"></a></td>').findall(html)
+    match = re.compile('<td[ width=270]*><a href="(.+?)"><img src="(.+?)"></a></td>').findall(html)
     
     for link, thumb in match:
         episodenum = re.search('([0-9]+)[.]jpg', thumb)
