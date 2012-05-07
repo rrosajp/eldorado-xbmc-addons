@@ -1,3 +1,6 @@
+v0.0.9(Monday, 07 May 2012):
+  - Fixed another small formatting change in HITB section
+
 v0.0.8 (Monday, 16 April 2012):
   - Fixed small formatting changes in HITB section
 

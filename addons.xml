@@ -21,11 +21,11 @@
 
 <addon id="plugin.video.redlettermedia"
        name="Red Letter Media"
-       version="0.0.8"
+       version="0.0.9"
        provider-name="Eldorado">
   <requires>
-    <import addon="xbmc.python" version="1.0"/>
-    <import addon="script.module.urlresolver" version="0.0.1"/>
+    <import addon="xbmc.python" version="2.0"/>
+    <import addon="script.module.urlresolver"/>
     <import addon="script.module.t0mm0.common" version="1.0.0"/>
     <import addon="script.module.elementtree"/>
   </requires>
@@ -52,17 +52,5 @@ Watch the infamous Harry Plinkett movie reviews as well as regular movie review 
 		<description>Download and install addons by Eldorado</description>
 		<platform>all</platform>
 	</extension>
-</addon>
-
-<addon id="script.module.urlresolver" name="urlresolver" version="0.0.1" provider-name="t0mm0 (inspired by unbehagan, anarchintosh)">
-  <requires>
-    <import addon="xbmc.python" version="1.0" />
-    <import addon="script.module.t0mm0.common" version="0.0.1"/>
-    <import addon="plugin.video.youtube"/>
-  </requires>
-  <extension point="xbmc.python.module" library="lib" />
-  <extension point="xbmc.addon.metadata">
-    <platform>all</platform>
-  </extension>
 </addon>
 </addons>
