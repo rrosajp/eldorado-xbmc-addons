@@ -148,7 +148,7 @@ elif mode == 'halfbag':
 elif mode == 'halfbag-episodes':
     url = addon.queries['url']
     html = get_http_error(url)
-    match = re.compile('<td[ width=270]*><a href="(.+?)"><img src="(.+?)"></a></td>').findall(html)
+    match = re.compile('<td[ width=270]*>.*?<a href="(.+?)"><img src="(.+?)"></a></td>', re.DOTALL).findall(html)
     
     for link, thumb in match:
         episodenum = re.search('([0-9]+)[.]jpg', thumb)
