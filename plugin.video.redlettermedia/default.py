@@ -98,13 +98,21 @@ if play:
     #Play the stream
     if stream_url:
         addon.resolve_url(stream_url)  
-       
-    
+
+
+def mainpage_links():
+    html = net.http_GET(MainUrl).content
+    entries = re.compile('<h2 class="entry-title"><a href="(.+?)" title=".+?">(.+?)</a></h2>').findall(html)
+    for link, title in entries:
+        addon.add_video_item({'url': link},{'title':title})
+
+
 if mode == 'main': 
     addon.add_directory({'mode': 'plinkett', 'url': MainUrl}, {'title': 'Plinkett Reviews'}, img=IconPath + 'plinkett.jpg')
     addon.add_directory({'mode': 'halfbag', 'url': MainUrl + 'half-in-the-bag/'}, {'title': 'Half in the Bag'}, img=IconPath + 'halfbag.jpg')
-    addon.add_directory({'mode': 'featurefilms', 'url': MainUrl + 'films/'}, {'title': 'Feature Films'})    
-    addon.add_directory({'mode': 'shortfilms', 'url': MainUrl + 'shorts/'}, {'title': 'Short Films'})        
+    addon.add_directory({'mode': 'featurefilms', 'url': MainUrl + 'films/'}, {'title': 'Feature Films'})
+    addon.add_directory({'mode': 'shortfilms', 'url': MainUrl + 'shorts/'}, {'title': 'Short Films'})
+    mainpage_links()
 
 elif mode == 'plinkett':
     url = addon.queries['url']
