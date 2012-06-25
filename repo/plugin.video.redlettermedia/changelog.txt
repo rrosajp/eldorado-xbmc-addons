@@ -1,3 +1,6 @@
+v0.1.0(Monday, 25 June 2012):
+  - Added main page news item links to main menu
+  
 v0.0.9(Monday, 07 May 2012):
   - Fixed another small formatting change in HITB section
 
