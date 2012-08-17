@@ -76,11 +76,12 @@ def sawlive(embedcode):
     html = net.http_GET(url, data).content
     embed_url = re.search('src="(.+?)"', html).group(1)
     html = net.http_GET(embed_url).content
-
+    
+    print html
     swfPlayer = re.search('flashplayer\': "(.+?)"', html).group(1)
     playPath = re.search('\'file\': \'(.+?)\'', html).group(1)
     streamer = re.search('\'streamer\': \'(.+?)\'', html).group(1)
-    appUrl = re.search('rtmp://.+?/(.+?)\'', html).group(1)
+    appUrl = re.search('rtmp[e]*://.+?/(.+?)\'', html).group(1)
     rtmpUrl = ''.join([streamer,
        ' playpath=', playPath,
        ' app=', appUrl,
