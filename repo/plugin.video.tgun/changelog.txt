@@ -1,0 +1,4 @@
+[B]v0.0.3 (Friday, 31 August 2012):[/B]
+  - Updated SawTV resolver
+  - Added 2nd page of shows
+ 
