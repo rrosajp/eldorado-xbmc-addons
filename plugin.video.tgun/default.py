@@ -3,7 +3,6 @@ import urllib2
 import re, string
 from t0mm0.common.addon import Addon
 from t0mm0.common.net import Net
-import urlresolver
 
 try:
     import json
@@ -74,7 +73,9 @@ def sawlive(embedcode):
     data = {'referer': main_url}
     html = net.http_POST(url, data).content
     html = net.http_GET(url, data).content
-    embed_url = re.search('src="(.+?)"', html).group(1)
+    aa1 = re.search('var aa1 = "(.+?)";', html).group(1)
+    zz1 = re.search('var zz1 = "(.+?)";', html).group(1)
+    embed_url = re.search('src="(.+?)\'', html).group(1) + aa1 + zz1
     html = net.http_GET(embed_url).content
     
     print html
@@ -95,7 +96,7 @@ def sawlive(embedcode):
 if play:
 
     html = net.http_GET(url).content
-    embedcode = re.search("(<!-- start embed -->|<!-- BEGIN PLAYER CODE.+?-->|<!-- START PLAYER CODE &ac=270 kayakcon11-->)(.+?)<!-- END PLAYER CODE -->", html, re.DOTALL).group(2)
+    embedcode = re.search("(<object type=\"application/x-shockwave-flash\"|<!-- start embed -->|<!-- BEGIN PLAYER CODE.+?-->|<!-- START PLAYER CODE &ac=270 kayakcon11-->)(.+?)<!-- END PLAYER CODE -->", html, re.DOTALL).group(2)
     
     if re.search('justin.tv', embedcode):
         stream_url = justintv(embedcode)
@@ -107,19 +108,23 @@ if play:
         addon.resolve_url(stream_url)
 
 
-if mode == 'main': 
+if mode == 'main2':
+    first_channel = 1
     addon.add_directory({'mode': 'channels', 'url': showlist_url_1}, {'title': 'TV Shows'}, img=icon_path + 'newtv.jpg')
-    addon.add_directory({'mode': 'channels', 'url': classic_url}, {'title': 'Classic TV'}, img=icon_path + 'retrotv.jpg')
+    addon.add_directory({'mode': 'channels', 'url': classic_url % first_channel}, {'title': 'Classic TV'}, img=icon_path + 'retrotv.jpg')
 
 
-elif mode == 'channels':
+elif mode == 'main':
+    if not url:
+        url = showlist_url_1
     html = net.http_GET(url).content
     
-    match = re.compile('<a Title[ ]*="(.+?)" [ ]*href="(.+?)"><img border="0" src="(.+?)" style=.+?</a>').findall(html)
+    match = re.compile('<a[ A-Za-z0-9\"=]* Title[ ]*="(.+?)"[ A-Za-z0-9\"=]* href="(.+?)"><img border="0" src="(.+?)" style=.+?</a>').findall(html)
     for name, link, thumb in match:
-        if not re.search(main_url, thumb):
+        if not re.search('http://', thumb):
             thumb = main_url + thumb
         addon.add_video_item({'mode': 'channel', 'url': shows_url + link}, {'title': name}, img=thumb)
+    addon.add_directory({'mode': 'main', 'url': showlist_url_2}, {'title': 'Next Page'})
 
 
 elif mode == 'resolver_settings':
