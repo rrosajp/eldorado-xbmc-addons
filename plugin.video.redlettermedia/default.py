@@ -101,6 +101,7 @@ if play:
 
 
 def mainpage_links():
+    addon.add_directory({'mode': 'none'}, {'title': '[COLOR blue]Recent Updates[/COLOR]'}, is_folder=False, img='')
     html = net.http_GET(MainUrl).content
     entries = re.compile('<h2 class="entry-title"><a href="(.+?)" title=".+?">(.+?)</a></h2>').findall(html)
     for link, title in entries:
@@ -112,6 +113,7 @@ if mode == 'main':
     addon.add_directory({'mode': 'halfbag', 'url': MainUrl + 'half-in-the-bag/'}, {'title': 'Half in the Bag'}, img=IconPath + 'halfbag.jpg')
     addon.add_directory({'mode': 'featurefilms', 'url': MainUrl + 'films/'}, {'title': 'Feature Films'})
     addon.add_directory({'mode': 'shortfilms', 'url': MainUrl + 'shorts/'}, {'title': 'Short Films'})
+    addon.add_directory({'mode': 'animatedplinkett', 'url': MainUrl + 'mr-plinkett-the-animated-series/'}, {'title': 'Mr. Plinkett - The Animated Series'})
     mainpage_links()
 
 elif mode == 'plinkett':
@@ -156,8 +158,8 @@ elif mode == 'halfbag':
 elif mode == 'halfbag-episodes':
     url = addon.queries['url']
     html = get_http_error(url)
+
     match = re.compile('<td[ width=270]*>.*?<a href="(.+?)"><img src="(.+?)"></a></td>', re.DOTALL).findall(html)
-    
     for link, thumb in match:
         episodenum = re.search('([0-9]+)[.]jpg', thumb)
         if episodenum:
@@ -165,6 +167,12 @@ elif mode == 'halfbag-episodes':
         else:
             filename = re.search('[^/]+$', thumb).group(0)
             episode_name = re.search('(.+?)[.]jpg', filename).group(1).replace('_',' ').title()
+        addon.add_video_item({'url': link},{'title': episode_name},img=thumb)
+    
+    shortmatch = re.compile('<a href="(http://www.youtube.com/.+?)" target=0><img src="(.+?)"></a>').findall(html)
+    for link, thumb in shortmatch:
+        filename = re.search('[^/]+$', thumb).group(0)
+        episode_name = re.search('(.+?)[.]jpg', filename).group(1).replace('_',' ').title()
         addon.add_video_item({'url': link},{'title': episode_name},img=thumb)
 
 
@@ -178,7 +186,7 @@ elif mode == 'featurefilms':
     else:
         match = None
            
-    thumb = re.compile('<td><a href=".+?"><img src="(.+?)" ></a></td>').findall(html)
+    thumb = re.compile('<td><a href=".+?"><img src="(.+?)"></a></td>').findall(html)
 
     #Add each link found as a directory item
     i = 0
@@ -200,7 +208,7 @@ elif mode == 'shortfilms':
     url = addon.queries['url']
     html = get_http_error(url)
 
-    r = re.search('''Short Films</a>.+?<ul class="sub-menu">(.+?)</ul>''', html, re.DOTALL)
+    r = re.search('''Short Films and Web Series</a>.+?<ul class="sub-menu">(.+?)</ul>''', html, re.DOTALL)
     if r:
         match = re.compile('<a href="(.+?)">(.+?)</a></li>').findall(r.group(1))
             
@@ -223,6 +231,18 @@ elif mode == 'shortseason':
             name = link.replace(url,'').replace('-',' ').replace('/',' ').title()
             link = url + link.replace(url,'')
             addon.add_video_item({'url': link},{'title': name},img=thumb)
+
+
+elif mode == 'animatedplinkett':
+    url = addon.queries['url']
+    html = get_http_error(url)
+
+    match = re.compile('<td><a href="(.+?)"><img src="(.+?)" width=260></a></td>', re.DOTALL).findall(html)
+    for link, thumb in match:
+        filename = re.search('[^/]+$', thumb).group(0)
+        episode_name = re.search('(.+?)[.]jpg', filename).group(1).replace('_',' ').title()
+        addon.add_video_item({'url': link},{'title': episode_name},img=thumb)
+
 
 if not play:
     addon.end_of_directory()
