@@ -52,6 +52,7 @@ def justintv(embedcode):
     channel_name = re.search('http://www.justin.tv/widgets/.+?\?channel=(.+)', channel).group(1)
     
     api_url = 'http://usher.justin.tv/find/%s.json?type=live' % channel_name
+    print 'Retrieving: %s' % api_url
     html = net.http_GET(api_url).content
     
     data = json.loads(html)
@@ -71,11 +72,12 @@ def get_blogspot(embedcode):
 def sawlive(embedcode):
     url = re.search("<script type='text/javascript'> swidth='600', sheight='530';</script><script type='text/javascript' src='(.+?)'></script>", embedcode, re.DOTALL).group(1)
     data = {'referer': main_url}
+    print 'Retrieving: %s' % url
     html = net.http_POST(url, data).content
     html = net.http_GET(url, data).content
-    aa1 = re.search('var aa1 = "(.+?)";', html).group(1)
-    zz1 = re.search('var zz1 = "(.+?)";', html).group(1)
-    embed_url = re.search('src="(.+?)\'', html).group(1) + aa1 + zz1
+    urlvars = re.findall('var .+? = "(.+?)";', html)
+    embed_url = re.search('src="(.+?)\'', html).group(1) + urlvars[0] + urlvars[1]
+    print 'Retrieving: %s' % embed_url
     html = net.http_GET(embed_url).content
     
     print html
@@ -117,6 +119,7 @@ if mode == 'main2':
 elif mode == 'main':
     if not url:
         url = showlist_url_1
+    print 'Retrieving: %s' % url
     html = net.http_GET(url).content
     
     match = re.compile('<a[ A-Za-z0-9\"=]* Title[ ]*="(.+?)"[ A-Za-z0-9\"=]* href="(.+?)"><img border="0" src="(.+?)" style=.+?</a>').findall(html)
