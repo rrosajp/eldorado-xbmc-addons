@@ -16,13 +16,13 @@ net = Net()
 ##### Queries ##########
 play = addon.queries.get('play', None)
 mode = addon.queries['mode']
-section = addon.queries.get('section', None)
+page_num = addon.queries.get('page_num', None)
 url = addon.queries.get('url', None)
 
 print 'Mode: ' + str(mode)
 print 'Play: ' + str(play)
 print 'URL: ' + str(url)
-print 'Section: ' + str(section)
+print 'Page: ' + str(page_num)
 
 ################### Global Constants #################################
 
@@ -30,11 +30,17 @@ main_url = 'http://www.tgun.tv/'
 shows_url = main_url + 'shows/'
 showlist_url_1 = shows_url + 'chmm.php'
 showlist_url_2 = shows_url + 'chmm2.php'
-classic_url = main_url + 'classic/chm%s.php'
+classic_url = main_url + 'classic/'
+classic_shows_url = classic_url + 'chm%s.php'
 addon_path = xaddon.getAddonInfo('path')
 icon_path = addon_path + "/icons/"
 
 ######################################################################
+
+def sys_exit():
+    exit=xbmc.executebuiltin("XBMC.Container.Update(path,replace)")
+    return
+
 
 def getSwfUrl(channel_name):
         """Helper method to grab the swf url, resolving HTTP 301/302 along the way"""
@@ -93,7 +99,22 @@ def sawlive(embedcode):
        ' live=true'])
     print rtmpUrl
     return rtmpUrl
+
+
+def mediaplayer(embedcode):
+    url = re.search('<embed type="application/x-mplayer2" .+? src="(.+?)"></embed>', embedcode).group(1)
+    print 'Retrieving: %s' % url
+    html = net.http_GET(url).content
     
+    matches = re.findall('<Ref href = "(.+?)"/>', html)
+    url = matches[1]
+    
+    print 'Retrieving: %s' % url
+    html = net.http_GET(url).content
+    print html
+    
+    return re.search('Ref1=(.+?.asf)', html).group(1)
+
 
 if play:
 
@@ -104,34 +125,69 @@ if play:
         stream_url = justintv(embedcode)
     elif re.search('sawlive', embedcode):
         stream_url = sawlive(embedcode)
+    elif re.search('MediaPlayer', embedcode):
+        stream_url = mediaplayer(embedcode)
 
     #Play the stream
     if stream_url:
         addon.resolve_url(stream_url)
 
 
-if mode == 'main2':
-    first_channel = 1
-    addon.add_directory({'mode': 'channels', 'url': showlist_url_1}, {'title': 'TV Shows'}, img=icon_path + 'newtv.jpg')
-    addon.add_directory({'mode': 'channels', 'url': classic_url % first_channel}, {'title': 'Classic TV'}, img=icon_path + 'retrotv.jpg')
+def mainmenu():
+    page = 1
+    addon.add_directory({'mode': 'tvchannels', 'url': showlist_url_1, 'page_num': page}, {'title': 'TV Shows'}, img=icon_path + 'newtv.jpg')
+    addon.add_directory({'mode': 'classics', 'url': classic_shows_url % page, 'page_num': page}, {'title': 'Classic TV'}, img=icon_path + 'retrotv.jpg')
 
 
-elif mode == 'main':
-    if not url:
-        url = showlist_url_1
+if mode == 'main':
+    mainmenu()
+
+
+if mode == 'mainexit':
+    sys_exit()
+    mainmenu()
+
+
+elif mode == 'tvchannels':
     print 'Retrieving: %s' % url
     html = net.http_GET(url).content
-    
+
+    page = int(page_num) 
+    if page > 1:
+        addon.add_directory({'mode': 'mainexit'}, {'title': 'Back to Main'})
+
+    if page < 2:
+        page = page +  1
+        addon.add_directory({'mode': 'tvchannels', 'url': showlist_url_2, 'page_num': page}, {'title': 'Next Page'})
+
     match = re.compile('<a[ A-Za-z0-9\"=]* Title[ ]*="(.+?)"[ A-Za-z0-9\"=]* href="(.+?)"><img border="0" src="(.+?)" style=.+?</a>').findall(html)
     for name, link, thumb in match:
         if not re.search('http://', thumb):
             thumb = main_url + thumb
         addon.add_video_item({'mode': 'channel', 'url': shows_url + link}, {'title': name}, img=thumb)
-    addon.add_directory({'mode': 'main', 'url': showlist_url_2}, {'title': 'Next Page'})
 
 
-elif mode == 'resolver_settings':
-    urlresolver.display_settings()
+elif mode == 'classics':
+    print 'Retrieving: %s' % url
+    html = net.http_GET(url).content
+
+    page = int(page_num)    
+    if page > 1:
+        addon.add_directory({'mode': 'mainexit'}, {'title': 'Back to Main'})
+
+    if page < 6:
+        page = page +  1
+        addon.add_directory({'mode': 'classics', 'url': classic_shows_url % page, 'page_num': page}, {'title': 'Next Page'})
+
+    match = re.compile('<td width=110><a href="(.+?)"><img src="(.+?)" border="0" width=100 height=60 />(.+?)</a>').findall(html)
+    for link, thumb, name in match:
+        if not re.search('http://', thumb):
+            thumb = main_url + thumb
+        addon.add_video_item({'mode': 'channel', 'url': classic_url + link}, {'title': name}, img=thumb)
+
+
+elif mode == 'exit':
+    sys_exit()
 
 
 if not play:
