@@ -38,7 +38,7 @@ icon_path = addon_path + "/icons/"
 ######################################################################
 
 def sys_exit():
-    exit=xbmc.executebuiltin("XBMC.Container.Update(path,replace)")
+    xbmc.executebuiltin("XBMC.Container.Update(addons://sources/video/plugin.video.tgun,replace)")
     return
 
 
@@ -82,7 +82,13 @@ def sawlive(embedcode):
     html = net.http_POST(url, data).content
     html = net.http_GET(url, data).content
     urlvars = re.findall('var .+? = "(.+?)";', html)
-    embed_url = re.search('src="(.+?)\'', html).group(1) + urlvars[0] + urlvars[1]
+    if urlvars[0].endswith('_'):
+        var1 = urlvars[1]
+        var2 = urlvars[0]
+    else:
+        var1 = urlvars[0]
+        var2 = urlvars[1]
+    embed_url = re.search('src="(.+?)\'', html).group(1) + var1 + var2
     print 'Retrieving: %s' % embed_url
     html = net.http_GET(embed_url).content
     
@@ -135,15 +141,15 @@ if play:
 
 def mainmenu():
     page = 1
-    addon.add_directory({'mode': 'tvchannels', 'url': showlist_url_1, 'page_num': page}, {'title': 'TV Shows'}, img=icon_path + 'newtv.jpg')
-    addon.add_directory({'mode': 'classics', 'url': classic_shows_url % page, 'page_num': page}, {'title': 'Classic TV'}, img=icon_path + 'retrotv.jpg')
+    addon.add_directory({'mode': 'tvchannels', 'url': showlist_url_1, 'page_num': page}, {'title': 'TV Shows'}, img=icon_path + 'newtv.png')
+    addon.add_directory({'mode': 'classics', 'url': classic_shows_url % page, 'page_num': page}, {'title': 'Classic TV'}, img=icon_path + 'retrotv.png')
 
 
 if mode == 'main':
     mainmenu()
 
 
-if mode == 'mainexit':
+elif mode == 'mainexit':
     sys_exit()
     mainmenu()
 
@@ -154,11 +160,11 @@ elif mode == 'tvchannels':
 
     page = int(page_num) 
     if page > 1:
-        addon.add_directory({'mode': 'mainexit'}, {'title': 'Back to Main'})
+        addon.add_directory({'mode': 'mainexit'}, {'title': '[COLOR red]Back to Main Menu[/COLOR]'}, img=icon_path + 'back_arrow.png')
 
     if page < 2:
         page = page +  1
-        addon.add_directory({'mode': 'tvchannels', 'url': showlist_url_2, 'page_num': page}, {'title': 'Next Page'})
+        addon.add_directory({'mode': 'tvchannels', 'url': showlist_url_2, 'page_num': page}, {'title': '[COLOR blue]Next Page[/COLOR]'}, img=icon_path + 'next_arrow.png')
 
     match = re.compile('<a[ A-Za-z0-9\"=]* Title[ ]*="(.+?)"[ A-Za-z0-9\"=]* href="(.+?)"><img border="0" src="(.+?)" style=.+?</a>').findall(html)
     for name, link, thumb in match:
@@ -173,11 +179,11 @@ elif mode == 'classics':
 
     page = int(page_num)    
     if page > 1:
-        addon.add_directory({'mode': 'mainexit'}, {'title': 'Back to Main'})
+        addon.add_directory({'mode': 'mainexit'}, {'title': '[COLOR red]Back to Main Menu[/COLOR]'}, img=icon_path + 'back_arrow.png')
 
     if page < 6:
         page = page +  1
-        addon.add_directory({'mode': 'classics', 'url': classic_shows_url % page, 'page_num': page}, {'title': 'Next Page'})
+        addon.add_directory({'mode': 'classics', 'url': classic_shows_url % page, 'page_num': page}, {'title': '[COLOR blue]Next Page[/COLOR]'}, img=icon_path + 'next_arrow.png')
 
     match = re.compile('<td width=110><a href="(.+?)"><img src="(.+?)" border="0" width=100 height=60 />(.+?)</a>').findall(html)
     for link, thumb, name in match:
