@@ -88,7 +88,7 @@ def sawlive(embedcode):
     else:
         var1 = urlvars[0]
         var2 = urlvars[1]
-    embed_url = re.search('src="(.+?)\'', html).group(1) + var1 + var2
+    embed_url = re.search('src="(.+?)\'', html).group(1) + '/' + var1 + '/' + var2
     print 'Retrieving: %s' % embed_url
     html = net.http_GET(embed_url).content
     
