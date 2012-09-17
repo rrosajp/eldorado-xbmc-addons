@@ -1,3 +1,13 @@
+[B]v0.0.8 (Monday, 17 September 2012):[/B]
+  - FU SAWLIVE TV!
+  - Started adding LiveTV channels section - vew few currently work
+
+[B]v0.0.7 (Sunday, 09 September 2012):[/B]
+  - Fixed SawTV resolver
+  
+[B]v0.0.6 (Friday, 07 September 2012):[/B]
+  - Fixed SawTV resolver
+  
 [B]v0.0.5 (Thursday, 06 September 2012):[/B]
   - Added Classic channels
 
