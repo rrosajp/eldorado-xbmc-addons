@@ -32,13 +32,15 @@ showlist_url_1 = shows_url + 'chmm.php'
 showlist_url_2 = shows_url + 'chmm2.php'
 classic_url = main_url + 'classic/'
 classic_shows_url = classic_url + 'chm%s.php'
+livetv_url = main_url + 'usa/'
+livetv_pages = livetv_url + 'chmtv%s.php'
 addon_path = xaddon.getAddonInfo('path')
 icon_path = addon_path + "/icons/"
 
 ######################################################################
 
 def sys_exit():
-    xbmc.executebuiltin("XBMC.Container.Update(addons://sources/video/plugin.video.tgun,replace)")
+    xbmc.executebuiltin("XBMC.Container.Update(addons://sources/video/plugin.video.tgun?mode=main,replace)")
     return
 
 
@@ -81,14 +83,15 @@ def sawlive(embedcode):
     print 'Retrieving: %s' % url
     html = net.http_POST(url, data).content
     html = net.http_GET(url, data).content
-    urlvars = re.findall('var .+? = "(.+?)";', html)
-    if urlvars[0].endswith('_'):
-        var1 = urlvars[1]
-        var2 = urlvars[0]
-    else:
-        var1 = urlvars[0]
-        var2 = urlvars[1]
-    embed_url = re.search('src="(.+?)\'', html).group(1) + '/' + var1 + '/' + var2
+    urlvars = re.findall('var (.+?) = "(.+?)";', html)
+    doclink = re.search('''src="(.+?)\+'">''', html).group(1)
+    values = {}
+    for var, value in urlvars:
+        values[var] = value.replace('"+"','')
+    x = re.findall('\+([a-z]+)', doclink)
+    for y in x:
+        doclink = doclink.replace(y, values[y])
+    embed_url = doclink.replace("'","").replace('+','').replace('"','')
     print 'Retrieving: %s' % embed_url
     html = net.http_GET(embed_url).content
     
@@ -122,17 +125,43 @@ def mediaplayer(embedcode):
     return re.search('Ref1=(.+?.asf)', html).group(1)
 
 
+def ilive(embedcode):
+    print embedcode
+    channel = re.search('<script type="text/javascript" src="http://www.ilive.to/embed/(.+?)&width=.+?"></script>', embedcode).group(1)
+    url = 'http://www.ilive.to/embedplayer.php?channel=%s' % channel
+    print 'Retrieving: %s' % url
+    html = net.http_GET(url).content
+
+    filename = re.search('.*streamer=rtmp.*?&file=([^&]+).flv.*', html).group(1)
+    swf = 'http://cdn.static.ilive.to/jwplayer/player_embed.swf'
+    return 'rtmp://176.31.231.50:1935/edge/ playPath=' + filename + ' swfUrl=' + swf + ' swfVfy=true live=true pageUrl=' + url
+
+
+def embedrtmp(embedcode):
+    stream = re.search('<embed src="(.+?)".*?;file=(.+?)&amp;streamer=(.+?)&amp;.*?>', embedcode)
+    print stream.group(3)
+    app = re.search('rtmp[e]*://.+?/(.+?/)', stream.group(3)).group(1)
+    return stream.group(3) + ' app=' + app + ' playpath=' + stream.group(2) + ' swfUrl=' + stream.group(1) + ' live=true'
+
+
 if play:
 
     html = net.http_GET(url).content
     embedcode = re.search("(<object type=\"application/x-shockwave-flash\"|<!-- start embed -->|<!-- BEGIN PLAYER CODE.+?-->|<!-- START PLAYER CODE &ac=270 kayakcon11-->)(.+?)<!-- END PLAYER CODE -->", html, re.DOTALL).group(2)
     
-    if re.search('justin.tv', embedcode):
+    if re.search('ilive.to', embedcode):
+        stream_url = ilive(embedcode)
+    elif re.search('justin.tv', embedcode):
         stream_url = justintv(embedcode)
     elif re.search('sawlive', embedcode):
         stream_url = sawlive(embedcode)
     elif re.search('MediaPlayer', embedcode):
         stream_url = mediaplayer(embedcode)
+    elif re.search('rtmp', embedcode):
+        stream_url = embedrtmp(embedcode)
+ 
+    else:
+        stream_url = None
 
     #Play the stream
     if stream_url:
@@ -141,8 +170,9 @@ if play:
 
 def mainmenu():
     page = 1
-    addon.add_directory({'mode': 'tvchannels', 'url': showlist_url_1, 'page_num': page}, {'title': 'TV Shows'}, img=icon_path + 'newtv.png')
-    addon.add_directory({'mode': 'classics', 'url': classic_shows_url % page, 'page_num': page}, {'title': 'Classic TV'}, img=icon_path + 'retrotv.png')
+    addon.add_directory({'mode': 'tvchannels', 'url': showlist_url_1, 'page_num': page}, {'title': 'Live TV Shows & Movies'}, img=icon_path + 'newtv.png')
+    addon.add_directory({'mode': 'classics', 'url': classic_shows_url % page, 'page_num': page}, {'title': 'Classic TV Shows'}, img=icon_path + 'retrotv.png')
+    addon.add_directory({'mode': 'livetv', 'url': livetv_pages % '', 'page_num': page}, {'title': 'Live TV Channels'}, img=icon_path + 'retrotv.png')
 
 
 if mode == 'main':
@@ -192,6 +222,25 @@ elif mode == 'classics':
         addon.add_video_item({'mode': 'channel', 'url': classic_url + link}, {'title': name}, img=thumb)
 
 
+elif mode == 'livetv':
+    print 'Retrieving: %s' % url
+    html = net.http_GET(url).content
+
+    page = int(page_num)    
+    if page > 1:
+        addon.add_directory({'mode': 'mainexit'}, {'title': '[COLOR red]Back to Main Menu[/COLOR]'}, img=icon_path + 'back_arrow.png')
+
+    if page < 7:
+        page = page +  1
+        addon.add_directory({'mode': 'livetv', 'url': livetv_pages % page, 'page_num': page}, {'title': '[COLOR blue]Next Page[/COLOR]'}, img=icon_path + 'next_arrow.png')
+
+    match = re.compile('<td width="100%" .+? href="(.+?)"><img border="0" src="(.+?)" style=.+?></a>(.+?)</td>').findall(html)
+    for link, thumb, name in match:
+        if not re.search('http://', thumb):
+            thumb = main_url + thumb
+        addon.add_video_item({'mode': 'channel', 'url': livetv_url + link}, {'title': name}, img=thumb)
+
+    
 elif mode == 'exit':
     sys_exit()
 
