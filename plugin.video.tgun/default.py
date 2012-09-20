@@ -1,17 +1,24 @@
 import xbmc, xbmcgui, xbmcaddon, xbmcplugin
 import urllib2
 import re, string
+import os
 from t0mm0.common.addon import Addon
 from t0mm0.common.net import Net
+from t0mm0.common.addon import Addon
+net = Net()
 
-try:
-    import json
-except:
-    import simplejson as json
 
+##### XBMC  ##########
 addon = Addon('plugin.video.tgun', sys.argv)
 xaddon = xbmcaddon.Addon(id='plugin.video.tgun')
-net = Net()
+datapath = addon.get_profile()
+
+
+##### Paths ##########
+cookie_path = os.path.join(datapath, 'cookies')
+cookie_jar = os.path.join(cookie_path, "cookiejar.lwp")
+if os.path.exists(cookie_path) == False:
+    os.makedirs(cookie_path)
 
 ##### Queries ##########
 play = addon.queries.get('play', None)
@@ -77,28 +84,36 @@ def get_blogspot(embedcode):
     return ''
 
 
-def sawlive(embedcode):
+def sawlive(embedcode, ref_url):
     url = re.search("<script type='text/javascript'> swidth='600', sheight='530';</script><script type='text/javascript' src='(.+?)'></script>", embedcode, re.DOTALL).group(1)
-    data = {'referer': main_url}
+    data = {'Referer': ref_url}
+    
     print 'Retrieving: %s' % url
     html = net.http_POST(url, data).content
     html = net.http_GET(url, data).content
-    urlvars = re.findall('var (.+?) = "(.+?)";', html)
-    doclink = re.search('''src="(.+?)\+'">''', html).group(1)
-    values = {}
-    for var, value in urlvars:
-        values[var] = value.replace('"+"','')
-    x = re.findall('\+([a-z]+)', doclink)
-    for y in x:
-        doclink = doclink.replace(y, values[y])
-    embed_url = doclink.replace("'","").replace('+','').replace('"','')
+    net.save_cookies(cookie_jar)
+    print html
+
+    #urlvars = re.findall('var (.+?) = "(.+?)";', html)
+    #doclink = re.search('''src="(.+?)\+'">''', html).group(1)
+    #values = {}
+    #for var, value in urlvars:
+    #    values[var] = value.replace('"+"','')
+    #x = re.findall('\+([a-z]+)', doclink)
+    #for y in x:
+    #    doclink = doclink.replace(y, values[y])
+    #embed_url = doclink.replace("'","").replace('+','').replace('"','')
+    
+    embed_url = re.search('src="(.+?)">', html).group(1)
+    
     print 'Retrieving: %s' % embed_url
+    data = {'Referer': url}
+    net.set_cookies(cookie_jar)
     html = net.http_GET(embed_url).content
     
-    print html
-    swfPlayer = re.search('flashplayer\': "(.+?)"', html).group(1)
-    playPath = re.search('\'file\': \'(.+?)\'', html).group(1)
-    streamer = re.search('\'streamer\': \'(.+?)\'', html).group(1)
+    swfPlayer = re.search('SWFObject\(\'(.+?)\'', html).group(1)
+    playPath = re.search('\'file\', \'(.+?)\'', html).group(1)
+    streamer = re.search('\'streamer\', \'(.+?)\'', html).group(1)
     appUrl = re.search('rtmp[e]*://.+?/(.+?)\'', html).group(1)
     rtmpUrl = ''.join([streamer,
        ' playpath=', playPath,
@@ -154,7 +169,7 @@ if play:
     elif re.search('justin.tv', embedcode):
         stream_url = justintv(embedcode)
     elif re.search('sawlive', embedcode):
-        stream_url = sawlive(embedcode)
+        stream_url = sawlive(embedcode, url)
     elif re.search('MediaPlayer', embedcode):
         stream_url = mediaplayer(embedcode)
     elif re.search('rtmp', embedcode):

@@ -1,3 +1,6 @@
+[B]v0.0.9 (Thursday, 20 September 2012):[/B]
+  - More Sawlive fun
+
 [B]v0.0.8 (Monday, 17 September 2012):[/B]
   - FU SAWLIVE TV!
   - Started adding LiveTV channels section - vew few currently work
