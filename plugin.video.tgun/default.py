@@ -7,6 +7,11 @@ from t0mm0.common.net import Net
 from t0mm0.common.addon import Addon
 net = Net()
 
+try:
+    import json
+except:
+    import simplejson as json
+
 
 ##### XBMC  ##########
 addon = Addon('plugin.video.tgun', sys.argv)
@@ -159,6 +164,27 @@ def embedrtmp(embedcode):
     return stream.group(3) + ' app=' + app + ' playpath=' + stream.group(2) + ' swfUrl=' + stream.group(1) + ' live=true'
 
 
+def castto(embedcode, url):
+    data = {'Referer': url}
+    
+    parms = re.search('<script type="text/javascript"> fid="(.+?)"; v_width=.+; .+ src=".+castto.+"></script>', embedcode)
+    
+    link = 'http://static.castto.me/embed.php?channel=%s' % parms.group(1)
+    html = net.http_GET(link, data).content
+    swfPlayer = re.search('SWFObject\(\'(.+?)\'', html).group(1)
+    playPath = re.search('\'file\',\'(.+?)\'', html).group(1)
+    streamer = re.search('\'streamer\',\'(.+?)\'', html).group(1)
+    appUrl = re.search('rtmp[e]*://.+?/(.+?)\'', html).group(1)
+    rtmpUrl = ''.join([streamer,
+       ' playpath=', playPath,
+       ' app=', appUrl,
+       ' pageURL=', url,
+       ' swfUrl=', swfPlayer,
+       ' live=true'])
+    print rtmpUrl
+    return rtmpUrl
+
+
 if play:
 
     html = net.http_GET(url).content
@@ -168,6 +194,8 @@ if play:
         stream_url = ilive(embedcode)
     elif re.search('justin.tv', embedcode):
         stream_url = justintv(embedcode)
+    elif re.search('castto', embedcode):
+        stream_url = castto(embedcode, url)
     elif re.search('sawlive', embedcode):
         stream_url = sawlive(embedcode, url)
     elif re.search('MediaPlayer', embedcode):
