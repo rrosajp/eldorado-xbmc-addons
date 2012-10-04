@@ -174,13 +174,12 @@ def castto(embedcode, url):
     swfPlayer = re.search('SWFObject\(\'(.+?)\'', html).group(1)
     playPath = re.search('\'file\',\'(.+?)\'', html).group(1)
     streamer = re.search('\'streamer\',\'(.+?)\'', html).group(1)
-    appUrl = re.search('rtmp[e]*://.+?/(.+?)\'', html).group(1)
     rtmpUrl = ''.join([streamer,
        ' playpath=', playPath,
-       ' app=', appUrl,
-       ' pageURL=', url,
+       ' pageURL=', 'http://static.castto.me',
        ' swfUrl=', swfPlayer,
-       ' live=true'])
+       ' live=true',
+       ' token=#ed%h0#w@1'])
     print rtmpUrl
     return rtmpUrl
 
