@@ -91,30 +91,14 @@ def get_blogspot(embedcode):
 
 def sawlive(embedcode, ref_url):
     url = re.search("<script type='text/javascript'> swidth='600', sheight='530';</script><script type='text/javascript' src='(.+?)'></script>", embedcode, re.DOTALL).group(1)
-    data = {'Referer': ref_url}
-    
-    print 'Retrieving: %s' % url
-    html = net.http_POST(url, data).content
-    html = net.http_GET(url, data).content
-    net.save_cookies(cookie_jar)
-    print html
-
-    #urlvars = re.findall('var (.+?) = "(.+?)";', html)
-    #doclink = re.search('''src="(.+?)\+'">''', html).group(1)
-    #values = {}
-    #for var, value in urlvars:
-    #    values[var] = value.replace('"+"','')
-    #x = re.findall('\+([a-z]+)', doclink)
-    #for y in x:
-    #    doclink = doclink.replace(y, values[y])
-    #embed_url = doclink.replace("'","").replace('+','').replace('"','')
-    
-    embed_url = re.search('src="(.+?)">', html).group(1)
-    
-    print 'Retrieving: %s' % embed_url
-    data = {'Referer': url}
-    net.set_cookies(cookie_jar)
-    html = net.http_GET(embed_url).content
+    ref_data = {'Referer': ref_url}
+      
+    jsunpackurl = 'http://jsunpack.jeek.org'
+    data = {'urlin': url}
+    html = net.http_POST(jsunpackurl, data).content
+    link = re.search('src="(http://sawlive.tv/embed/watch/.+?)"',html).group(1)
+    print link
+    html = net.http_GET(link, ref_data).content
     
     swfPlayer = re.search('SWFObject\(\'(.+?)\'', html).group(1)
     playPath = re.search('\'file\', \'(.+?)\'', html).group(1)
@@ -189,14 +173,14 @@ if play:
     html = net.http_GET(url).content
     embedcode = re.search("(<object type=\"application/x-shockwave-flash\"|<!-- start embed -->|<!-- BEGIN PLAYER CODE.+?-->|<!-- START PLAYER CODE &ac=270 kayakcon11-->)(.+?)<!-- END PLAYER CODE -->", html, re.DOTALL).group(2)
     
-    if re.search('ilive.to', embedcode):
-        stream_url = ilive(embedcode)
-    elif re.search('justin.tv', embedcode):
+    if re.search('justin.tv', embedcode):
         stream_url = justintv(embedcode)
     elif re.search('castto', embedcode):
         stream_url = castto(embedcode, url)
     elif re.search('sawlive', embedcode):
         stream_url = sawlive(embedcode, url)
+    elif re.search('ilive.to', embedcode):
+        stream_url = ilive(embedcode)	
     elif re.search('MediaPlayer', embedcode):
         stream_url = mediaplayer(embedcode)
     elif re.search('rtmp', embedcode):
