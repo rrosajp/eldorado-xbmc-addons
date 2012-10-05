@@ -1,3 +1,6 @@
+[B]v0.0.12 (Thursday, 04 October 2012):[/B]
+  - Fixed SawLive
+  
 [B]v0.0.11 (Thursday, 04 October 2012):[/B]
   - Fixed Castto parser
   
