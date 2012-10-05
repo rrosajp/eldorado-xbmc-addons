@@ -51,6 +51,23 @@ icon_path = addon_path + "/icons/"
 
 ######################################################################
 
+def Notify(typeq, title, message, times, line2='', line3=''):
+     #simplified way to call notifications. common notifications here.
+     if title == '':
+          title='TGUN Notification'
+     if typeq == 'small':
+          if times == '':
+               times='5000'
+          smallicon= icon_path + 'tgun.png'
+          xbmc.executebuiltin("XBMC.Notification("+title+","+message+","+times+","+smallicon+")")
+     elif typeq == 'big':
+          dialog = xbmcgui.Dialog()
+          dialog.ok(' '+title+' ', ' '+message+' ', line2, line3)
+     else:
+          dialog = xbmcgui.Dialog()
+          dialog.ok(' '+title+' ', ' '+message+' ')
+
+
 def sys_exit():
     xbmc.executebuiltin("XBMC.Container.Update(addons://sources/video/plugin.video.tgun?mode=main,replace)")
     return
@@ -92,13 +109,27 @@ def get_blogspot(embedcode):
 def sawlive(embedcode, ref_url):
     url = re.search("<script type='text/javascript'> swidth='600', sheight='530';</script><script type='text/javascript' src='(.+?)'></script>", embedcode, re.DOTALL).group(1)
     ref_data = {'Referer': ref_url}
-      
-    jsunpackurl = 'http://jsunpack.jeek.org'
-    data = {'urlin': url}
-    html = net.http_POST(jsunpackurl, data).content
-    link = re.search('src="(http://sawlive.tv/embed/watch/.+?)"',html).group(1)
-    print link
-    html = net.http_GET(link, ref_data).content
+
+    try:
+        ## Current SawLive resolving technique - always try to fix first
+        #html = net.http_GET(url,ref_data).content
+        #print html
+        #link = 'http://sawlive.tv/embed/watch/' + urllib2.unquote(re.search('unescape\(\'(.+?)\'\);', html).group(1))
+        #print link
+        #html = net.http_GET(link, ref_data).content
+        boink
+
+    except Exception, e:
+        ## Use if first section does not work - last resort which returns compiled javascript
+        print 'SawLive resolving failed, attempting jsunpack.jeek.org, msg: %s' % e
+        Notify('small','SawLive', 'Resolve Failed. Using jsunpack','')
+        
+        jsunpackurl = 'http://jsunpack.jeek.org'
+        data = {'urlin': url}
+        html = net.http_POST(jsunpackurl, data).content
+        link = re.search('src="(http://sawlive.tv/embed/watch/[A-Za-z0-9]+[/][A-Za-z0-9_]+)"',html).group(1)
+        print link
+        html = net.http_GET(link, ref_data).content
     
     swfPlayer = re.search('SWFObject\(\'(.+?)\'', html).group(1)
     playPath = re.search('\'file\', \'(.+?)\'', html).group(1)
@@ -172,7 +203,8 @@ if play:
 
     html = net.http_GET(url).content
     embedcode = re.search("(<object type=\"application/x-shockwave-flash\"|<!-- start embed -->|<!-- BEGIN PLAYER CODE.+?-->|<!-- START PLAYER CODE &ac=270 kayakcon11-->)(.+?)<!-- END PLAYER CODE -->", html, re.DOTALL).group(2)
-    
+    embedcode = re.sub('<!--.+?-->', '', embedcode)
+
     if re.search('justin.tv', embedcode):
         stream_url = justintv(embedcode)
     elif re.search('castto', embedcode):
