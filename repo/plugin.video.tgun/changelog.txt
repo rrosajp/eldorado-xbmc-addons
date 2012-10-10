@@ -1,3 +1,22 @@
+[B]v0.0.14 (Wednesday, 10 October 2012):[/B]
+  - Update iLive.to rtmp address
+
+[B]v0.0.13 (Friday, 04 October 2012):[/B]
+  - More updates to SawLive
+  - Removed html code that is commented out from checking for video links
+  
+[B]v0.0.12 (Thursday, 04 October 2012):[/B]
+  - Fixed SawLive
+  
+[B]v0.0.11 (Thursday, 04 October 2012):[/B]
+  - Fixed Castto parser
+  
+[B]v0.0.10 (Thursday, 04 October 2012):[/B]
+  - Added Castto parser
+
+[B]v0.0.9 (Thursday, 20 September 2012):[/B]
+  - More Sawlive fun
+
 [B]v0.0.8 (Monday, 17 September 2012):[/B]
   - FU SAWLIVE TV!
   - Started adding LiveTV channels section - vew few currently work
