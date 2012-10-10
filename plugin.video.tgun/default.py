@@ -161,7 +161,6 @@ def mediaplayer(embedcode):
 
 
 def ilive(embedcode):
-    print embedcode
     channel = re.search('<script type="text/javascript" src="http://www.ilive.to/embed/(.+?)&width=.+?"></script>', embedcode).group(1)
     url = 'http://www.ilive.to/embedplayer.php?channel=%s' % channel
     print 'Retrieving: %s' % url
@@ -169,7 +168,7 @@ def ilive(embedcode):
 
     filename = re.search('.*streamer=rtmp.*?&file=([^&]+).flv.*', html).group(1)
     swf = 'http://cdn.static.ilive.to/jwplayer/player_embed.swf'
-    return 'rtmp://176.31.231.50:1935/edge/ playPath=' + filename + ' swfUrl=' + swf + ' swfVfy=true live=true pageUrl=' + url
+    return 'rtmp://46.105.109.122:1935/edge playPath=' + filename + ' swfUrl=' + swf + ' swfVfy=true live=true pageUrl=' + url
 
 
 def embedrtmp(embedcode):
