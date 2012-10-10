@@ -1,3 +1,6 @@
+[B]v0.1.2(Wednesday, 10 October 2012):[/B]
+  - Updated for new site layout
+  
 [B]v0.1.1(Friday, 31 August 2012):[/B]
   - Added new Half In The Bag section - Short Versions
   - Fixed Feature Films & Short Films for new site layout
