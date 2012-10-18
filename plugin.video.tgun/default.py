@@ -112,12 +112,9 @@ def sawlive(embedcode, ref_url):
 
     try:
         ## Current SawLive resolving technique - always try to fix first
-        #html = net.http_GET(url,ref_data).content
-        #print html
-        #link = 'http://sawlive.tv/embed/watch/' + urllib2.unquote(re.search('unescape\(\'(.+?)\'\);', html).group(1))
-        #print link
-        #html = net.http_GET(link, ref_data).content
-        boink
+        html = net.http_GET(url,ref_data).content
+        link = re.search('src="(http://sawlive.tv/embed/watch/[A-Za-z0-9_/]+)">', html).group(1)
+        print link
 
     except Exception, e:
         ## Use if first section does not work - last resort which returns compiled javascript
@@ -129,7 +126,8 @@ def sawlive(embedcode, ref_url):
         html = net.http_POST(jsunpackurl, data).content
         link = re.search('src="(http://sawlive.tv/embed/watch/[A-Za-z0-9]+[/][A-Za-z0-9_]+)"',html).group(1)
         print link
-        html = net.http_GET(link, ref_data).content
+
+    html = net.http_GET(link, ref_data).content
     
     swfPlayer = re.search('SWFObject\(\'(.+?)\'', html).group(1)
     playPath = re.search('\'file\', \'(.+?)\'', html).group(1)
