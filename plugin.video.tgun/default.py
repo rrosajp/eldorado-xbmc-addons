@@ -4,7 +4,6 @@ import re, string
 import os
 from t0mm0.common.addon import Addon
 from t0mm0.common.net import Net
-from t0mm0.common.addon import Addon
 net = Net()
 
 try:
@@ -159,12 +158,18 @@ def mediaplayer(embedcode):
 
 
 def ilive(embedcode):
-    channel = re.search('<script type="text/javascript" src="http://www.ilive.to/embed/(.+?)&width=.+?"></script>', embedcode).group(1)
-    url = 'http://www.ilive.to/embedplayer.php?channel=%s' % channel
-    print 'Retrieving: %s' % url
-    html = net.http_GET(url).content
+    
+    channel = re.search('<script type="text/javascript" src="http://www.ilive.to/embed/(.+?)&width=.+?"></script>', embedcode)
+    
+    if channel:
+        url = 'http://www.ilive.to/embedplayer.php?channel=%s' % channel.group(1)
+        print 'Retrieving: %s' % url
+        html = net.http_GET(url).content
+        filename = re.search('.*streamer=rtmp.*?&file=([^&]+).flv.*', html).group(1)
+    else:
+        filename = re.search('streamer=rtmp://live.ilive.to/edge&file=(.+?)&autostart=true&controlbar=bottom"', embedcode).group(1)
+        url = 'http://www.ilive.to/embedplayer.php'
 
-    filename = re.search('.*streamer=rtmp.*?&file=([^&]+).flv.*', html).group(1)
     swf = 'http://cdn.static.ilive.to/jwplayer/player_embed.swf'
     return 'rtmp://46.105.109.122:1935/edge playPath=' + filename + ' swfUrl=' + swf + ' swfVfy=true live=true pageUrl=' + url
 
