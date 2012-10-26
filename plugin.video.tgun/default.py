@@ -201,6 +201,35 @@ def castto(embedcode, url):
     return rtmpUrl
 
 
+def owncast(embedcode, url):
+    data = {'Referer': url}
+    
+    parms = re.search('<script type="text/javascript"> fid="(.+?)"; v_width=(.+?); v_height=(.+?);</script><script type="text/javascript" src="(.+?)"></script>', embedcode)
+    
+    link = 'http://www.owncast.me/embed.php?channel=%s&vw=%s&vh=%s&domain=www.tgun.tv' % (parms.group(1), parms.group(2), parms.group(3))
+    #html = net.http_GET(link, data).content
+    referrer = url
+    USER_AGENT = 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-GB; rv:1.9.0.3) Gecko/2008092417 Firefox/3.0.3'
+    req = urllib2.Request(link)
+    req.add_header('User-Agent', USER_AGENT)
+    req.add_header('Referer', referrer)
+    response = urllib2.urlopen(req)
+    html = response.read()
+    print html
+
+    swfPlayer = re.search('SWFObject\(\'(.+?)\'', html).group(1)
+    playPath = re.search('\'file\',\'(.+?)\'', html).group(1)
+    streamer = re.search('\'streamer\',\'(.+?)\'', html).group(1)
+    rtmpUrl = ''.join([streamer,
+       ' playpath=', playPath,
+       ' pageURL=', 'http://static.castto.me',
+       ' swfUrl=', swfPlayer,
+       ' live=true',
+       ' token=#ed%h0#w@1'])
+    print rtmpUrl
+    return rtmpUrl
+    
+
 if play:
 
     html = net.http_GET(url).content
@@ -211,6 +240,8 @@ if play:
         stream_url = justintv(embedcode)
     elif re.search('castto', embedcode):
         stream_url = castto(embedcode, url)
+    elif re.search('owncast', embedcode):
+        stream_url = owncast(embedcode, url)
     elif re.search('sawlive', embedcode):
         stream_url = sawlive(embedcode, url)
     elif re.search('ilive.to', embedcode):
