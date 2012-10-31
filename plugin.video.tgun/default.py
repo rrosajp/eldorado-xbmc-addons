@@ -171,7 +171,7 @@ def ilive(embedcode):
         url = 'http://www.ilive.to/embedplayer.php'
 
     swf = 'http://cdn.static.ilive.to/jwplayer/player_embed.swf'
-    return 'rtmp://46.105.109.122:1935/edge playPath=' + filename + ' swfUrl=' + swf + ' swfVfy=true live=true pageUrl=' + url
+    return 'rtmp://live.ilive.to/redirect playPath=' + filename + ' swfUrl=' + swf + ' swfVfy=true live=true pageUrl=' + url
 
 
 def embedrtmp(embedcode):
@@ -215,7 +215,6 @@ def owncast(embedcode, url):
     req.add_header('Referer', referrer)
     response = urllib2.urlopen(req)
     html = response.read()
-    print html
 
     swfPlayer = re.search('SWFObject\(\'(.+?)\'', html).group(1)
     playPath = re.search('\'file\',\'(.+?)\'', html).group(1)
@@ -224,8 +223,7 @@ def owncast(embedcode, url):
        ' playpath=', playPath,
        ' pageURL=', 'http://static.castto.me',
        ' swfUrl=', swfPlayer,
-       ' live=true',
-       ' token=#ed%h0#w@1'])
+       ' live=true'])
     print rtmpUrl
     return rtmpUrl
     
@@ -252,6 +250,7 @@ if play:
         stream_url = embedrtmp(embedcode)
  
     else:
+        Notify('small','Undefined Stream', 'Channel is using an unknown stream type','')
         stream_url = None
 
     #Play the stream
@@ -263,7 +262,7 @@ def mainmenu():
     page = 1
     addon.add_directory({'mode': 'tvchannels', 'url': showlist_url_1, 'page_num': page}, {'title': 'Live TV Shows & Movies'}, img=icon_path + 'newtv.png')
     addon.add_directory({'mode': 'classics', 'url': classic_shows_url % page, 'page_num': page}, {'title': 'Classic TV Shows'}, img=icon_path + 'retrotv.png')
-    addon.add_directory({'mode': 'livetv', 'url': livetv_pages % '', 'page_num': page}, {'title': 'Live TV Channels'}, img=icon_path + 'retrotv.png')
+    #addon.add_directory({'mode': 'livetv', 'url': livetv_pages % '', 'page_num': page}, {'title': 'Live TV Channels'}, img=icon_path + 'retrotv.png')
 
 
 if mode == 'main':
@@ -291,7 +290,8 @@ elif mode == 'tvchannels':
     for name, link, thumb in match:
         if not re.search('http://', thumb):
             thumb = main_url + thumb
-        addon.add_video_item({'mode': 'channel', 'url': shows_url + link}, {'title': name}, img=thumb)
+        if not re.search('veetle', link):
+            addon.add_video_item({'mode': 'channel', 'url': shows_url + link}, {'title': name}, img=thumb)
 
 
 elif mode == 'classics':
