@@ -1,3 +1,8 @@
+[B]v0.0.18 (Tuesday, 30 October 2012):[/B]
+  - Updated iLive.to resolver to use dynamic rtmp address instead of static ip
+  - Disabled Live TV channels
+  - Removing Veetle channels from listings until solution is found
+
 [B]v0.0.17 (Thursday, 25 October 2012):[/B]
   - Added OwnCast.me resolver
  
