@@ -217,6 +217,8 @@ def owncast(embedcode, url):
     html = response.read()
 
     swfPlayer = re.search('SWFObject\(\'(.+?)\'', html).group(1)
+    if not re.search('http://www.owncast.me', swfPlayer):
+        swfPlayer = 'http://www.owncast.me' + swfPlayer
     playPath = re.search('\'file\',\'(.+?)\'', html).group(1)
     streamer = re.search('\'streamer\',\'(.+?)\'', html).group(1)
     rtmpUrl = ''.join([streamer,
