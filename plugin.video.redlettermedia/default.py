@@ -51,7 +51,7 @@ if play:
     if isyoutube:
         stream_url = urlresolver.HostedMediaFile(url).resolve()
     
-    #Is a redlettermedia url, so need to find and parse vide link
+    #Is a redlettermedia url, so need to find and parse video link
     else:
     
         html = get_http_error(url)
@@ -78,9 +78,15 @@ if play:
         
             #Check for youtube video first
             youtube = re.search('src="(http://www.youtube.com/[v|embed]*/[0-9A-Za-z_\-]+).+?"',html)      
+            springboard = re.search('src="(http://cms.springboardplatform.com/.+?)"', html)
             
             if youtube:
                 stream_url = urlresolver.HostedMediaFile(url=youtube.group(1)).resolve()
+            
+            elif springboard:
+                html = net.http_GET(springboard.group(1)).content
+                stream_url = re.search('<meta property="og:video" content="(.+?)" />', html).group(1)
+                
             else:
             
                 video = re.search('<embed.+?src="http://[a.]{0,2}blip.tv/[^#/]*[#/]{1}([^"]*)"',html, re.DOTALL).group(1)
