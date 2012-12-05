@@ -165,7 +165,7 @@ def ilive(embedcode):
         url = 'http://www.ilive.to/embedplayer.php?channel=%s' % channel.group(1)
         print 'Retrieving: %s' % url
         html = net.http_GET(url).content
-        filename = re.search('.*streamer=rtmp.*?&file=([^&]+).flv.*', html).group(1)
+        filename = re.search("'file': '([^&]+).flv'", html).group(1)
     else:
         filename = re.search('streamer=rtmp://live.ilive.to/edge&file=(.+?)&autostart=true&controlbar=bottom"', embedcode).group(1)
         url = 'http://www.ilive.to/embedplayer.php'
@@ -228,13 +228,19 @@ def owncast(embedcode, url):
        ' live=true'])
     print rtmpUrl
     return rtmpUrl
-    
+
+
+def check_stream_type(code):
+    print 'blah'
+
 
 if play:
 
     html = net.http_GET(url).content
     embedcode = re.search("(<object type=\"application/x-shockwave-flash\"|<!-- start embed -->|<!-- BEGIN PLAYER CODE.+?-->|<!-- START PLAYER CODE &ac=270 kayakcon11-->)(.+?)<!-- END PLAYER CODE -->", html, re.DOTALL).group(2)
-    embedcode = re.sub('<!--.+?-->', '', embedcode)
+    
+    #Remove any commented out sources to we don't try to use them
+    embedcode = re.sub('<!--.+?-->', '', embedcode).strip()
 
     if re.search('justin.tv', embedcode):
         stream_url = justintv(embedcode)
@@ -252,8 +258,18 @@ if play:
         stream_url = embedrtmp(embedcode)
  
     else:
-        Notify('small','Undefined Stream', 'Channel is using an unknown stream type','')
-        stream_url = None
+        #If can't find anything lets do a quick check for escaped html for hidden links
+        if not embedcode:
+            escaped = re.findall('document.write\(unescape\(\'(.+?)\'\)\);', html)
+            if escaped:
+                for escape in escaped:
+                    embedcode = urllib2.unquote(urllib2.unquote(escape))
+                    if re.search('streamer', embedcode):
+                        stream = re.search('streamer=(.+?)&file=(.+?)&skin=.+?src="(.+?)"', embedcode)
+                        stream_url = stream.group(1) + ' playpath=' + stream.group(2) + ' swfUrl=http://cdn.static.ilive.to' + stream.group(3) + ' live=true'
+        else:
+            Notify('small','Undefined Stream', 'Channel is using an unknown stream type','')
+            stream_url = None
 
     #Play the stream
     if stream_url:
