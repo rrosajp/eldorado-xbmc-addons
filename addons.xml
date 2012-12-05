@@ -41,7 +41,7 @@
 
 <addon id="plugin.video.tgun"
        name="The GiddyUp Network"
-       version="0.0.19"
+       version="0.0.20"
        provider-name="Eldorado">
   <requires>
     <import addon="xbmc.python" version="2.0"/>
@@ -52,7 +52,9 @@
   </extension>
   <extension point="xbmc.addon.metadata">
     <summary lang="en"></summary>
-    <description lang="en"></description>
+    <description lang="en">Visit www.xbmchub.com for support.
+
+Watch all your favorite TV Shows and Movies streamed on constant repeat 24/7 from The Giddy Up Network - www.tgun.tv </description>
     <platform>all</platform>
   </extension>
 </addon>
