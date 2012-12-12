@@ -1,3 +1,6 @@
+[B]v0.0.21 (Wednesdaty, 12 December 2012):[/B]
+  - Fix for slight variations in html embed code
+
 [B]v0.0.20 (Wednesdaty, 06 December 2012):[/B]
   - Added check for links that are hidden with escaped html
 
