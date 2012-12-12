@@ -237,7 +237,7 @@ def check_stream_type(code):
 if play:
 
     html = net.http_GET(url).content
-    embedcode = re.search("(<object type=\"application/x-shockwave-flash\"|<!-- start embed -->|<!-- BEGIN PLAYER CODE.+?-->|<!-- START PLAYER CODE &ac=270 kayakcon11-->)(.+?)<!-- END PLAYER CODE -->", html, re.DOTALL).group(2)
+    embedcode = re.search("(<object type=\"application/x-shockwave-flash\"|<!--[0-9]* start embed [0-9]*-->|<!-- BEGIN PLAYER CODE.+?-->|<!-- START PLAYER CODE &ac=270 kayakcon11-->)(.+?)<!-- END PLAYER CODE -->", html, re.DOTALL).group(2)
     
     #Remove any commented out sources to we don't try to use them
     embedcode = re.sub('<!--.+?-->', '', embedcode).strip()
