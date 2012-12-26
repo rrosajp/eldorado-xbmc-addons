@@ -92,7 +92,11 @@ def justintv(embedcode):
     html = net.http_GET(api_url).content
     
     data = json.loads(html)
-    jtv_token = ' jtv='+data[0]['token'].replace('\\','\\5c').replace(' ','\\20').replace('"','\\22')
+    try:
+        jtv_token = ' jtv='+data[0]['token'].replace('\\','\\5c').replace(' ','\\20').replace('"','\\22')
+    except:
+        Notify('small','Offline', 'Channel is currently offline','')
+        return None
     rtmp = data[0]['connect']+'/'+data[0]['play']
     swf = ' swfUrl=%s swfVfy=1' % getSwfUrl(channel_name)
     page_url = ' Pageurl=http://www.justin.tv/' + channel_name
@@ -230,17 +234,27 @@ def owncast(embedcode, url):
     return rtmpUrl
 
 
-def check_stream_type(code):
-    print 'blah'
+def playerindex(embedcode):
+    link = re.search('iframe src="(.+?)"', embedcode).group(1)
+    link = urllib2.unquote(urllib2.unquote(link))
+    html = net.http_GET('http://www.tgun.tv/shows/' + link).content
+    return html
 
 
 if play:
 
     html = net.http_GET(url).content
-    embedcode = re.search("(<object type=\"application/x-shockwave-flash\"|<!--[0-9]* start embed [0-9]*-->|<!-- BEGIN PLAYER CODE.+?-->|<!-- START PLAYER CODE &ac=270 kayakcon11-->)(.+?)<!-- END PLAYER CODE -->", html, re.DOTALL).group(2)
+    embedtext = "(<object type=\"application/x-shockwave-flash\"|<!--[0-9]* start embed [0-9]*-->|<!-- BEGIN PLAYER CODE.+?-->|<!-- START PLAYER CODE &ac=270 kayakcon11-->)(.+?)<!-- END PLAYER CODE -->"
+    embedcode = re.search(embedtext, html, re.DOTALL).group(2)
     
     #Remove any commented out sources to we don't try to use them
     embedcode = re.sub('<!--.+?-->', '', embedcode).strip()
+
+    if re.search('playerindex.php', embedcode):
+        channel = urllib2.unquote(re.search('src="playerindex.php\?(.+?)"', embedcode).group(1))
+        html = playerindex(embedcode)
+        embedcode = ''
+        #embedcode = re.search('(document.write\(unescape.+?\)\);)', html, re.DOTALL).group(1)
 
     if re.search('justin.tv', embedcode):
         stream_url = justintv(embedcode)
@@ -266,7 +280,12 @@ if play:
                     embedcode = urllib2.unquote(urllib2.unquote(escape))
                     if re.search('streamer', embedcode):
                         stream = re.search('streamer=(.+?)&file=(.+?)&skin=.+?src="(.+?)"', embedcode)
-                        stream_url = stream.group(1) + ' playpath=' + stream.group(2) + ' swfUrl=http://cdn.static.ilive.to' + stream.group(3) + ' live=true'
+                        print '!!!!!!!!', stream.group(2)
+                        if '+' in stream.group(2):
+                            playpath = channel
+                        else:
+                            playpath = stream.group(2)
+                        stream_url = stream.group(1) + ' playpath=' + playpath + ' swfUrl=http://www.tgun.tv' + stream.group(3) + ' live=true'
         else:
             Notify('small','Undefined Stream', 'Channel is using an unknown stream type','')
             stream_url = None
