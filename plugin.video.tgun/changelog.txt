@@ -1,3 +1,6 @@
+[B]v0.0.23 (Friday, 28 December 2012):[/B]
+  - Fixed small regex on finding player embed code
+  
 [B]v0.0.22 (Wednesdaty, 26 December 2012):[/B]
   - Added check for TGUN hiding links
   - Added JTV offline channel check
