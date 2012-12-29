@@ -244,7 +244,7 @@ def playerindex(embedcode):
 if play:
 
     html = net.http_GET(url).content
-    embedtext = "(<object type=\"application/x-shockwave-flash\"|<!--[0-9]* start embed [0-9]*-->|<!-- BEGIN PLAYER CODE.+?-->|<!-- START PLAYER CODE &ac=270 kayakcon11-->)(.+?)<!-- END PLAYER CODE -->"
+    embedtext = "(<object type=\"application/x-shockwave-flash\"|<!--[0-9]* start embed [0-9]*-->|<!-- BEGIN PLAYER CODE.+?-->|<!-- START PLAYER CODE [&ac=270 kayakcon11]*-->)(.+?)<!-- END PLAYER CODE -->"
     embedcode = re.search(embedtext, html, re.DOTALL).group(2)
     
     #Remove any commented out sources to we don't try to use them
@@ -254,7 +254,6 @@ if play:
         channel = urllib2.unquote(re.search('src="playerindex.php\?(.+?)"', embedcode).group(1))
         html = playerindex(embedcode)
         embedcode = ''
-        #embedcode = re.search('(document.write\(unescape.+?\)\);)', html, re.DOTALL).group(1)
 
     if re.search('justin.tv', embedcode):
         stream_url = justintv(embedcode)
