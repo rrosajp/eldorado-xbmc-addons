@@ -1,3 +1,7 @@
+[B]v0.0.24 (Sunday, 30 December 2012):[/B]
+  - Fixed more regex variations to get more channels working
+  - Fixed owncast.me resolver - updated playpath value
+  
 [B]v0.0.23 (Friday, 28 December 2012):[/B]
   - Fixed small regex on finding player embed code
   
