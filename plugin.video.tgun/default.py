@@ -227,7 +227,7 @@ def owncast(embedcode, url):
     streamer = re.search('\'streamer\',\'(.+?)\'', html).group(1)
     rtmpUrl = ''.join([streamer,
        ' playpath=', playPath,
-       ' pageURL=', 'http://static.castto.me',
+       ' pageURL=', link,
        ' swfUrl=', swfPlayer,
        ' live=true'])
     print rtmpUrl
@@ -244,7 +244,7 @@ def playerindex(embedcode):
 if play:
 
     html = net.http_GET(url).content
-    embedtext = "(<object type=\"application/x-shockwave-flash\"|<!--[0-9]* start embed [0-9]*-->|<!-- BEGIN PLAYER CODE.+?-->|<!-- START PLAYER CODE [&ac=270 kayakcon11]*-->)(.+?)<!-- END PLAYER CODE -->"
+    embedtext = "(<object type=\"application/x-shockwave-flash\"|<!--[0-9]* start embed [0-9]*-->|<!-- BEGIN PLAYER CODE.+?-->|<!-- Begin PLAYER CODE.+?-->|<!--[ ]*START PLAYER CODE [&ac=270 kayakcon11]*-->)(.+?)<!-- END PLAYER CODE [A-Za-z0-9]*-->"
     embedcode = re.search(embedtext, html, re.DOTALL).group(2)
     
     #Remove any commented out sources to we don't try to use them
@@ -272,7 +272,7 @@ if play:
  
     else:
         #If can't find anything lets do a quick check for escaped html for hidden links
-        if not embedcode:
+        if not embedcode or re.search('document.write\(unescape', html):
             escaped = re.findall('document.write\(unescape\(\'(.+?)\'\)\);', html)
             if escaped:
                 for escape in escaped:
