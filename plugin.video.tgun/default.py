@@ -110,7 +110,7 @@ def get_blogspot(embedcode):
 
 
 def sawlive(embedcode, ref_url):
-    url = re.search("<script type='text/javascript'> swidth='600', sheight='530';</script><script type='text/javascript' src='(.+?)'></script>", embedcode, re.DOTALL).group(1)
+    url = re.search("<script type='text/javascript'> swidth='[0-9%]+', sheight='[0-9%]+';</script><script type='text/javascript' src='(.+?)'></script>", embedcode, re.DOTALL).group(1)
     ref_data = {'Referer': ref_url}
 
     try:
@@ -248,12 +248,17 @@ if play:
     embedcode = re.search(embedtext, html, re.DOTALL).group(2)
     
     #Remove any commented out sources to we don't try to use them
-    embedcode = re.sub('<!--.+?-->', '', embedcode).strip()
+    embedcode = re.sub('(?s)<!--.*?-->', '', embedcode).strip()
 
     if re.search('playerindex.php', embedcode):
         channel = urllib2.unquote(re.search('src="playerindex.php\?(.+?)"', embedcode).group(1))
         html = playerindex(embedcode)
         embedcode = ''
+
+    if re.search('http://tgun.tv/embed/', embedcode):
+        link = re.search('src="(.+?)"', embedcode).group(1)
+        embedcode = net.http_GET(link).content      
+        embedcode = re.sub('(?s)<!--.*?-->', '', embedcode).strip()
 
     if re.search('justin.tv', embedcode):
         stream_url = justintv(embedcode)
@@ -279,7 +284,6 @@ if play:
                     embedcode = urllib2.unquote(urllib2.unquote(escape))
                     if re.search('streamer', embedcode):
                         stream = re.search('streamer=(.+?)&file=(.+?)&skin=.+?src="(.+?)"', embedcode)
-                        print '!!!!!!!!', stream.group(2)
                         if '+' in stream.group(2):
                             playpath = channel
                         else:
