@@ -1,3 +1,6 @@
+[B]v0.0.25 (Tuesday, 08 January 2013):[/B]
+  - Added check for internal linked streams
+
 [B]v0.0.24 (Sunday, 30 December 2012):[/B]
   - Fixed more regex variations to get more channels working
   - Fixed owncast.me resolver - updated playpath value
