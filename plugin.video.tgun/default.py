@@ -244,7 +244,7 @@ def playerindex(embedcode):
 if play:
 
     html = net.http_GET(url).content
-    embedtext = "(<object type=\"application/x-shockwave-flash\"|<!--[0-9]* start embed [0-9]*-->|<!-- BEGIN PLAYER CODE.+?-->|<!-- Begin PLAYER CODE.+?-->|<!--[ ]*START PLAYER CODE [&ac=270 kayakcon11]*-->)(.+?)<!-- END PLAYER CODE [A-Za-z0-9]*-->"
+    embedtext = "(<object type=\"application/x-shockwave-flash\"|<!--[0-9]* start embed [0-9]*-->|<!-- BEGIN PLAYER CODE.+?-->|<!-- Begin PLAYER CODE.+?-->|<!--[ ]*START PLAYER CODE [&ac=270 kayakcon11]*-->|)(.+?)<!-- END PLAYER CODE [A-Za-z0-9]*-->"
     embedcode = re.search(embedtext, html, re.DOTALL).group(2)
     
     #Remove any commented out sources to we don't try to use them
@@ -283,12 +283,15 @@ if play:
                 for escape in escaped:
                     embedcode = urllib2.unquote(urllib2.unquote(escape))
                     if re.search('streamer', embedcode):
-                        stream = re.search('streamer=(.+?)&file=(.+?)&skin=.+?src="(.+?)"', embedcode)
-                        if '+' in stream.group(2):
-                            playpath = channel
-                        else:
-                            playpath = stream.group(2)
-                        stream_url = stream.group(1) + ' playpath=' + playpath + ' swfUrl=http://www.tgun.tv' + stream.group(3) + ' live=true'
+                        swfPlayer = re.search('SWFObject\(\'(.+?)\'', embedcode).group(1)
+                        streamer = re.search('\'streamer\',\'(.+?)\'', embedcode).group(1)
+                        playPath = channel
+                        stream_url = ''.join([streamer,
+                                       ' playpath=', playPath,
+                                       ' pageURL=', url,
+                                       ' swfUrl=', 'http://www.tgun.tv' + swfPlayer,
+                                       ' live=true'])
+                        print stream_url
         else:
             Notify('small','Undefined Stream', 'Channel is using an unknown stream type','')
             stream_url = None
