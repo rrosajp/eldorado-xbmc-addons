@@ -1,3 +1,6 @@
+[B]v0.0.27 (Friday, 18 January 2013):[/B]
+  - Updated tgun player streams again, check for new and old format
+  
 [B]v0.0.26 (Tuesday, 15 January 2013):[/B]
   - Updated for new html layout of tgun player streams
   
