@@ -283,14 +283,23 @@ if play:
                 for escape in escaped:
                     embedcode = urllib2.unquote(urllib2.unquote(escape))
                     if re.search('streamer', embedcode):
-                        swfPlayer = re.search('SWFObject\(\'(.+?)\'', embedcode).group(1)
-                        streamer = re.search('\'streamer\',\'(.+?)\'', embedcode).group(1)
-                        playPath = channel
-                        stream_url = ''.join([streamer,
-                                       ' playpath=', playPath,
-                                       ' pageURL=', url,
-                                       ' swfUrl=', 'http://www.tgun.tv' + swfPlayer,
-                                       ' live=true'])
+                        stream = re.search('streamer=(.+?)&file=(.+?)&skin=.+?src="(.+?)"', embedcode)
+                        
+                        if stream:
+                            if '+' in stream.group(2):
+                                playpath = channel
+                            else:
+                                playpath = stream.group(2)
+                            stream_url = stream.group(1) + ' playpath=' + playpath + ' swfUrl=http://www.tgun.tv' + stream.group(3) + ' live=true'                        
+                        else:
+                            swfPlayer = re.search('SWFObject\(\'(.+?)\'', embedcode).group(1)
+                            streamer = re.search('\'streamer\',\'(.+?)\'', embedcode).group(1)
+                            playPath = channel
+                            stream_url = ''.join([streamer,
+                                           ' playpath=', playPath,
+                                           ' pageURL=', url,
+                                           ' swfUrl=', 'http://www.tgun.tv' + swfPlayer,
+                                           ' live=true'])
                         print stream_url
         else:
             Notify('small','Undefined Stream', 'Channel is using an unknown stream type','')
