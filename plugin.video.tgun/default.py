@@ -219,12 +219,19 @@ def owncast(embedcode, url):
     req.add_header('Referer', referrer)
     response = urllib2.urlopen(req)
     html = response.read()
-
     swfPlayer = re.search('SWFObject\(\'(.+?)\'', html).group(1)
+    rtmpjson = re.search('getJSON\("(.+?)",', html).group(1)
+    
+    data = {'referer': link}
+    rtmplink = net.http_GET(rtmpjson, data).content
+    streamer = re.search('"rtmp":"(.+?)"', rtmplink).group(1)
+    playPath = re.search('"streamname":"(.+?)"', rtmplink).group(1)
+    
+    
     if not re.search('http://www.owncast.me', swfPlayer):
         swfPlayer = 'http://www.owncast.me' + swfPlayer
-    playPath = re.search('\'file\',\'(.+?)\'', html).group(1)
-    streamer = re.search('\'streamer\',\'(.+?)\'', html).group(1)
+    #playPath = re.search('\'file\',\'(.+?)\'', html).group(1)
+    #streamer = re.search('\'streamer\',\'(.+?)\'', html).group(1)
     rtmpUrl = ''.join([streamer,
        ' playpath=', playPath,
        ' pageURL=', link,
@@ -241,25 +248,16 @@ def playerindex(embedcode):
     return html
 
 
-if play:
-
-    html = net.http_GET(url).content
+def get_embed(html):
     embedtext = "(<object type=\"application/x-shockwave-flash\"|<!--[0-9]* start embed [0-9]*-->|<!-- BEGIN PLAYER CODE.+?-->|<!-- Begin PLAYER CODE.+?-->|<!--[ ]*START PLAYER CODE [&ac=270 kayakcon11]*-->|)(.+?)<!-- END PLAYER CODE [A-Za-z0-9]*-->"
     embedcode = re.search(embedtext, html, re.DOTALL).group(2)
     
     #Remove any commented out sources to we don't try to use them
     embedcode = re.sub('(?s)<!--.*?-->', '', embedcode).strip()
+    return embedcode
 
-    if re.search('playerindex.php', embedcode):
-        channel = urllib2.unquote(re.search('src="playerindex.php\?(.+?)"', embedcode).group(1))
-        html = playerindex(embedcode)
-        embedcode = ''
 
-    if re.search('http://tgun.tv/embed/', embedcode):
-        link = re.search('src="(.+?)"', embedcode).group(1)
-        embedcode = net.http_GET(link).content      
-        embedcode = re.sub('(?s)<!--.*?-->', '', embedcode).strip()
-
+def determine_stream(embedcode, url):
     if re.search('justin.tv', embedcode):
         stream_url = justintv(embedcode)
     elif re.search('castto', embedcode):
@@ -274,8 +272,29 @@ if play:
         stream_url = mediaplayer(embedcode)
     elif re.search('rtmp', embedcode):
         stream_url = embedrtmp(embedcode)
- 
     else:
+        stream_url = None
+    return stream_url
+
+
+if play:
+
+    html = net.http_GET(url).content
+    embedcode = get_embed(html)
+
+    if re.search('playerindex.php', embedcode):
+        channel = urllib2.unquote(re.search('src="playerindex.php\?(.+?)"', embedcode).group(1))
+        html = playerindex(embedcode)
+        embedcode = ''
+
+    if re.search('http://tgun.tv/embed/', embedcode):
+        link = re.search('src="(.+?)"', embedcode).group(1)
+        embedcode = net.http_GET(link).content      
+        embedcode = re.sub('(?s)<!--.*?-->', '', embedcode).strip()
+
+    stream_url = determine_stream(embedcode, url)
+
+    if not stream_url:
         #If can't find anything lets do a quick check for escaped html for hidden links
         if not embedcode or re.search('document.write\(unescape', html):
             escaped = re.findall('document.write\(unescape\(\'(.+?)\'\)\);', html)
@@ -301,6 +320,14 @@ if play:
                                            ' swfUrl=', 'http://www.tgun.tv' + swfPlayer,
                                            ' live=true'])
                         print stream_url
+                    elif re.search('http://tgun.tv/embed', embedcode):
+                        link = re.search('src="(.+?)"', html)
+                        if link:
+                            html = net.http_GET(link.group(1)).content
+                            html = re.sub('(?s)<!--.*?-->', '', html).strip()
+                            stream_url = determine_stream(html, link.group(1))
+                        else:
+                            stream_url = None
         else:
             Notify('small','Undefined Stream', 'Channel is using an unknown stream type','')
             stream_url = None
