@@ -1,3 +1,7 @@
+[B]v0.0.28 (Thursday, 24 January 2013):[/B]
+  - Added new check on internal streams
+  - Updated owncast resolver
+
 [B]v0.0.27 (Friday, 18 January 2013):[/B]
   - Updated tgun player streams again, check for new and old format
   
