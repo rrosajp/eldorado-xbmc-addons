@@ -1,5 +1,5 @@
 import xbmc, xbmcgui, xbmcplugin
-import urllib, urllib2
+import urllib
 import re, string
 from t0mm0.common.addon import Addon
 from t0mm0.common.net import Net
@@ -33,16 +33,18 @@ imdb_id = addon.queries.get('imdb_id', '')
 season = addon.queries.get('season', '')
 episode = addon.queries.get('episode', '')
 
-print 'Mode: ' + str(mode)
-print 'Play: ' + str(play)
-print 'URL: ' + str(url)
-print 'Video Type: ' + str(video_type)
-print 'Section: ' + str(section)
-print 'Title: ' + str(title)
-print 'Name: ' + str(name)
-print 'IMDB: ' + str(imdb_id)
-print 'Season: ' + str(season)
-print 'Episode: ' + str(episode)
+print '---------------------------------------------------------------'
+print '--- Mode: ' + str(mode)
+print '--- Play: ' + str(play)
+print '--- URL: ' + str(url)
+print '--- Video Type: ' + str(video_type)
+print '--- Section: ' + str(section)
+print '--- Title: ' + str(title)
+print '--- Name: ' + str(name)
+print '--- IMDB: ' + str(imdb_id)
+print '--- Season: ' + str(season)
+print '--- Episode: ' + str(episode)
+print '---------------------------------------------------------------'
 
 ################### Global Constants #################################
 
@@ -111,35 +113,35 @@ def setView(content, viewType):
     xbmcplugin.addSortMethod( handle=int( sys.argv[ 1 ] ), sortMethod=xbmcplugin.SORT_METHOD_GENRE )
 
 
-def add_favorite():
-    saved_favs = cache.get('favorites_' + video_type)
+def add_favourite():
+    saved_favs = cache.get('favourites_' + video_type)
     favs = []
     
     if saved_favs:
         favs = eval(saved_favs)
         if favs:
             if (title, name, imdb_id, season, episode, url) in favs:
-                Notify('small', 'Favorite Already Exists', name.title() + ' already exists in your PTV favorites','')
+                Notify('small', 'Favourite Already Exists', name.title() + ' already exists in your PTV favourites','')
                 return
 
     favs.append((title, name, imdb_id, season, episode, url))
-    cache.set('favorites_' + video_type, str(favs))
-    Notify('small', 'Added to favorites', name.title() + ' added to your PTV favorites','')
+    cache.set('favourites_' + video_type, str(favs))
+    Notify('small', 'Added to favourites', name.title() + ' added to your PTV favourites','')
 
 
-def remove_favorite():
-    saved_favs = cache.get('favorites_' + video_type)
+def remove_favourite():
+    saved_favs = cache.get('favourites_' + video_type)
     if saved_favs:
         favs = eval(saved_favs)
         favs.remove((title, name, imdb_id, season, episode, url))
-        cache.set('favorites_' + video_type, str(favs))
+        cache.set('favourites_' + video_type, str(favs))
         xbmc.executebuiltin("XBMC.Container.Refresh")
 
 
 def refresh_movie(vidtitle, year=''):
 
     metaget=metahandlers.MetaData()
-    search_meta = metaget.search_movies(vidname)
+    search_meta = metaget.search_movies(vidtitle)
     print search_meta
     
     if search_meta:
@@ -174,63 +176,74 @@ def season_refresh(vidname, imdb, season_num):
     xbmc.executebuiltin("XBMC.Container.Refresh")
 
 
-def get_metadata(video_type, vidname, year='', imdb='', season_list=None, season_num=0, episode_num=0):
+def get_metadata(video_type, vidtitle, vidname='', year='', imdb='', season_list=None, season_num=0, episode_num=0):
     
-    #Get Meta settings
-    movie_covers = addon.get_setting('movie-covers')
-    tv_banners = addon.get_setting('tv-banners')
-    tv_posters = addon.get_setting('tv-posters')
-    
-    movie_fanart = addon.get_setting('movie-fanart')
-    tv_fanart = addon.get_setting('tv-fanart')
+    if meta_setting:
+        #Get Meta settings
+        movie_covers = addon.get_setting('movie-covers')
+        tv_banners = addon.get_setting('tv-banners')
+        tv_posters = addon.get_setting('tv-posters')
         
-    metaget=metahandlers.MetaData()
-
-    if video_type in (VideoType_Movies, VideoType_TV):
-        meta = metaget.get_meta(video_type, vidname, year=year)
-
-    if video_type == VideoType_Season:
-        returnlist = True
-        if not season_list:
-            season_list = []
-            season_list.append(season_num)
-            returnlist = False
-        meta = metaget.get_seasons(vidname, imdb, season_list)
-        if not returnlist:
-            meta = meta[0]
-
-    if video_type == VideoType_Episode:
-        meta=metaget.get_episode_meta(vidname, imdb, season_num, episode_num)
+        movie_fanart = addon.get_setting('movie-fanart')
+        tv_fanart = addon.get_setting('tv-fanart')
+            
+        metaget=metahandlers.MetaData()
     
-    #Check for and blank out covers if option disabled
-    if video_type==VideoType_Movies and movie_covers == 'false':
-        meta['cover_url'] = ''
-    elif video_type==VideoType_TV and tv_banners == 'false':
-        meta['cover_url'] = ''
-
-    #Check for banners vs posters setting    
-    if video_type == VideoType_TV and tv_banners == 'true' and tv_posters == 'false':
-        meta['cover_url'] = meta['banner_url']
+        if video_type in (VideoType_Movies, VideoType_TV):
+            meta = metaget.get_meta(video_type, vidtitle, year=year)
     
-    #Check for and blank out fanart if option disabled
-    if video_type==VideoType_Movies and movie_fanart == 'false':
+        if video_type == VideoType_Season:
+            returnlist = True
+            if not season_list:
+                season_list = []
+                season_list.append(season_num)
+                returnlist = False
+            meta = metaget.get_seasons(vidtitle, imdb, season_list)
+            if not returnlist:
+                meta = meta[0]
+    
+        if video_type == VideoType_Episode:
+            meta=metaget.get_episode_meta(vidname, imdb, season_num, episode_num)
+        
+        #Check for and blank out covers if option disabled
+        if video_type==VideoType_Movies and movie_covers == 'false':
+            meta['cover_url'] = ''
+        elif video_type==VideoType_TV and tv_banners == 'false':
+            meta['cover_url'] = ''
+    
+        #Check for banners vs posters setting    
+        if video_type == VideoType_TV and tv_banners == 'true' and tv_posters == 'false':
+            meta['cover_url'] = meta['banner_url']
+        
+        #Check for and blank out fanart if option disabled
+        if video_type==VideoType_Movies and movie_fanart == 'false':
+            meta['backdrop_url'] = ''
+        elif video_type in (VideoType_TV, VideoType_Episode) and tv_fanart == 'false':
+            meta['backdrop_url'] = ''
+
+    else:
+        meta = {}
+        meta['title'] = vidname
+        meta['cover_url'] = ''
+        meta['imdb_id'] = imdb
         meta['backdrop_url'] = ''
-    elif video_type in (VideoType_TV, VideoType_Episode) and tv_fanart == 'false':
-        meta['backdrop_url'] = ''
-   
+        meta['year'] = year
+        if video_type in (VideoType_TV, VideoType_Episode):
+            meta['TVShowTitle'] = vidtitle
+
     return meta
 
 
-def add_contextmenu(use_meta, video_type, link, vidtitle, vidname, favorite, watched='', imdb='', tmdb='', year='', season_num=0, episode_num=0):
+def add_contextmenu(use_meta, video_type, link, vidtitle, vidname, favourite, watched='', imdb='', year='', season_num=0, episode_num=0):
     
     contextMenuItems = []
     contextMenuItems.append(('Info', 'XBMC.Action(Info)'))
 
-    #Check if we are listing items in the Favorites list
-    if favorite:
-        contextMenuItems.append(('Delete from Favorites', 'XBMC.RunPlugin(%s?mode=del_fav&video_type=%s&title=%s&name=%s&url=%s&imdb_id=%s&season=%s&episode=%s)' % (sys.argv[0], video_type, vidtitle.encode('utf-8'), vidname.encode('utf-8'), link, imdb, season_num, episode_num)))
+    #Check if we are listing items in the Favourites list
+    if favourite:
+        contextMenuItems.append(('Delete from Favourites', 'XBMC.RunPlugin(%s?mode=del_fav&video_type=%s&title=%s&name=%s&url=%s&imdb_id=%s&season=%s&episode=%s)' % (sys.argv[0], video_type, vidtitle.encode('utf-8'), vidname.encode('utf-8'), link, imdb, season_num, episode_num)))
     else:
-        contextMenuItems.append(('Add to Favorites', 'XBMC.RunPlugin(%s?mode=add_fav&video_type=%s&title=%s&name=%s&url=%s&imdb_id=%s&season=%s&episode=%s)' % (sys.argv[0], video_type, vidtitle.encode('utf-8'), vidname.encode('utf-8'), link, imdb, season_num, episode_num)))
+        contextMenuItems.append(('Add to Favourites', 'XBMC.RunPlugin(%s?mode=add_fav&video_type=%s&title=%s&name=%s&url=%s&imdb_id=%s&season=%s&episode=%s)' % (sys.argv[0], video_type, vidtitle.encode('utf-8'), vidname.encode('utf-8'), link, imdb, season_num, episode_num)))
 
     #Meta is turned on so enable extra context menu options
     if use_meta:
@@ -239,7 +252,7 @@ def add_contextmenu(use_meta, video_type, link, vidtitle, vidname, favorite, wat
         else:
             watched_mark = 'Mark as Unwatched'
 
-        contextMenuItems.append((watched_mark, 'XBMC.RunPlugin(%s?mode=watch_mark&video_type=%s&title=%s&imdb_id=%s&tmdb_id=%s&season=%s&episode=%s)' % (sys.argv[0], video_type, vidtitle, imdb, tmdb, season_num, episode_num)))
+        contextMenuItems.append((watched_mark, 'XBMC.RunPlugin(%s?mode=watch_mark&video_type=%s&title=%s&imdb_id=%s&season=%s&episode=%s)' % (sys.argv[0], video_type, vidtitle, imdb, season_num, episode_num)))
         contextMenuItems.append(('Refresh Metadata', 'XBMC.RunPlugin(%s?mode=refresh_meta&video_type=%s&title=%s&year=%s&season=%s&episode=%s)' % (sys.argv[0], video_type, vidtitle, year, season_num, episode_num)))
         
         #if video_type == VideoType_Movies:
@@ -248,38 +261,22 @@ def add_contextmenu(use_meta, video_type, link, vidtitle, vidname, favorite, wat
     return contextMenuItems
 
 
-def add_video_directory(mode, video_type, link, vidtitle, vidname, imdb='', year='', season_num=0, totalitems=0, favorite=False):
-    
-    if meta_setting:
-        meta = get_metadata(video_type, vidtitle, year=year, imdb=imdb, season_num=season_num)
-        contextMenuItems = add_contextmenu(True, video_type, link, vidtitle, vidname, favorite, watched=meta['overlay'], imdb=meta['imdb_id'], year=year, season_num=season_num)
-    else:
-        meta = {}
-        meta['title'] = vidname
-        meta['TVShowTitle'] = vidtitle
-        meta['cover_url'] = ''
-        meta['imdb_id'] = imdb
-        meta['backdrop_url'] = ''
-        contextMenuItems = add_contextmenu(False, video_type, link, vidtitle, vidname, favorite, year=year, season_num=season_num)
+def add_video_directory(mode, video_type, link, vidtitle, vidname, imdb='', year='', season_num=0, totalitems=0, favourite=False):
+
+    meta = get_metadata(video_type, vidtitle, year=year, imdb=imdb, season_num=season_num)
+    contextMenuItems = add_contextmenu(meta_setting, video_type, link, vidtitle, vidname, favourite, watched=meta['overlay'], imdb=meta['imdb_id'], year=year, season_num=season_num)
 
     meta['title'] = vidname
     addon.add_directory({'mode': mode, 'url': link, 'video_type': VideoType_Season, 'imdb_id': meta['imdb_id'], 'title': vidtitle, 'name': vidname, 'season': season_num}, meta, contextMenuItems, context_replace=True, img=meta['cover_url'], fanart=meta['backdrop_url'], total_items=totalitems)
 
 
-def add_video_item(video_type, section, link, vidtitle, vidname, year='', imdb='', season_num=0, episode_num=0, totalitems=0, favorite=False):
+def add_video_item(video_type, section, link, vidtitle, vidname, year='', imdb='', season_num=0, episode_num=0, totalitems=0, favourite=False):
 
-    if meta_setting:
-        meta = get_metadata(video_type, vidtitle, year, imdb=imdb, season_num=season_num, episode_num=episode_num)
-        if video_type == VideoType_Movies:
-            contextMenuItems = add_contextmenu(True, video_type, link, vidtitle, meta['title'], favorite, watched=meta['overlay'], imdb=meta['imdb_id'], tmdb=meta['tmdb_id'], year=meta['year'])
-        else:
-            contextMenuItems = add_contextmenu(True, video_type, link, vidtitle, meta['title'], favorite, watched=meta['overlay'], imdb=meta['imdb_id'], season_num=season_num, episode_num=episode_num)
+    meta = get_metadata(video_type, vidtitle, vidname, year, imdb=imdb, season_num=season_num, episode_num=episode_num)
+    if video_type == VideoType_Movies:
+        contextMenuItems = add_contextmenu(meta_setting, video_type, link, vidtitle, meta['title'], favourite, watched=meta['overlay'], imdb=meta['imdb_id'], year=meta['year'])
     else:
-        meta = {}
-        meta['title'] = vidname
-        meta['cover_url'] = ''
-        meta['backdrop_url'] = ''
-        contextMenuItems = add_contextmenu(False, video_type, link, vidtitle, vidname, favorite, year=year)
+        contextMenuItems = add_contextmenu(meta_setting, video_type, link, vidtitle, meta['title'], favourite, watched=meta['overlay'], imdb=meta['imdb_id'], season_num=season_num, episode_num=episode_num)
     
     if video_type == VideoType_Movies:
         addon.add_video_item({'url': link, 'video_type': video_type, 'section': section, 'title': vidtitle, 'name': vidname}, meta, contextMenuItems, context_replace=True, img=meta['cover_url'], fanart=meta['backdrop_url'], total_items=totalitems)
@@ -375,7 +372,7 @@ if mode == 'main':
 elif mode == 'movies':
     addon.add_directory({'mode': 'moviesaz', 'section': 'moviesaz'}, {'title': 'A-Z'}, img=IconPath + "AZ.png")
     addon.add_directory({'mode': 'moviespopular', 'section': 'moviespopular'}, {'title': 'Popular'})
-    addon.add_directory({'mode': 'favorites', 'video_type': VideoType_Movies}, {'title': 'Favorites'})
+    addon.add_directory({'mode': 'favourites', 'video_type': VideoType_Movies}, {'title': 'Favourites'})
     addon.add_directory({'mode': 'search', 'section': SearchMovies}, {'title': 'Search'})
     addon.add_directory({'mode': 'movieslatest', 'section': 'movieslatest'}, {'title': 'Latest Added Links'})
     addon.add_directory({'mode': 'moviesgenre', 'section': 'moviesgenre'}, {'title': 'Genre'}, img=IconPath + 'Genre.png')
@@ -425,7 +422,7 @@ elif mode == 'moviespopular':
        is_movie = re.search('/movies/', link)
        if vidname != "...more" and is_movie:
           add_video_item(VideoType_Movies, VideoType_Movies, link, vidname, vidname, totalitems=len(match))
-    setView(movies, 'movie-view')
+    setView('movies', 'movie-view')
 
 
 elif mode == 'moviesyear':
@@ -447,7 +444,7 @@ elif mode == 'tv':
     addon.add_directory({'mode': 'tvaz', 'section': 'tvaz'}, {'title': 'A-Z'}, img=IconPath + "AZ.png")
     addon.add_directory({'mode': 'tvpopular', 'section': 'tvpopular'}, {'title': 'Popular'})
     #addon.add_directory({'mode': 'tvlatest', 'section': 'tvlatest'}, 'Latest')
-    addon.add_directory({'mode': 'favorites', 'video_type': VideoType_TV}, {'title': 'Favorites'})
+    addon.add_directory({'mode': 'favourites', 'video_type': VideoType_TV}, {'title': 'Favourites'})
     addon.add_directory({'mode': 'search', 'section': SearchTV}, {'title': 'Search'})    	
     addon.add_directory({'mode': 'tvlastadded', 'section': 'tv24hours', 'url': TVUrl + 'index_last.html'}, {'title': 'Last 24 Hours'})
     addon.add_directory({'mode': 'tvlastadded', 'section': 'tv3days', 'url': TVUrl + 'index_last_3_days.html'}, {'title': 'Last 3 Days'})
@@ -535,7 +532,7 @@ elif mode == 'tvseasons':
             meta = season_meta[num]
         meta['title'] = season_num + episodes
         link = url + '/' + link
-        contextMenuItems = add_contextmenu(meta_setting, video_type, link, title, meta['title'], favorite=False, watched=meta['overlay'], imdb=meta['imdb_id'], season_num=seasons[num])
+        contextMenuItems = add_contextmenu(meta_setting, video_type, link, title, meta['title'], favourite=False, watched=meta['overlay'], imdb=meta['imdb_id'], season_num=seasons[num])
         addon.add_directory({'mode': 'tvepisodes', 'url': link, 'video_type': VideoType_Season, 'imdb_id': meta['imdb_id'], 'title': title, 'name': meta['title'], 'season': seasons[num]}, meta, contextMenuItems, context_replace=True, img=meta['cover_url'], fanart=meta['backdrop_url'], total_items=len(match))
         num = num + 1
     setView('seasons', 'season-view')
@@ -543,10 +540,19 @@ elif mode == 'tvseasons':
 
 elif mode == 'tvepisodes':
     html = net.http_GET(url).content.encode('utf-8')
-    match = re.compile('<td class="episode">.+?b>(.+?)</b>').findall(html)
-    for vidname in match:
-        episode_num = re.search('([0-9]{0,2}).', vidname).group(1)
-        add_video_item(VideoType_Episode, VideoType_Episode, url, title, vidname, imdb=imdb_id, season_num=season, episode_num=episode_num, totalitems=len(match))
+    match = re.compile('<td class="episode"><a name=".+?"></a>(.*?)<b>(.+?)</b></td>[\r\n\t]*(<td align="right".+?;Air Date: (.+?)</div>)*', re.DOTALL).findall(html)
+    for next_episode, vidname, empty, next_air in match:
+        episode_num = re.search('([0-9]{0,2})\.', vidname)
+        if episode_num:
+            episode_num = episode_num.group(1)
+        else:
+            episode_num = 0
+        if not next_episode:
+            add_video_item(VideoType_Episode, VideoType_Episode, url, title, vidname, imdb=imdb_id, season_num=season, episode_num=episode_num, totalitems=len(match))
+        else:
+            meta = get_metadata(VideoType_Episode, title, vidname, imdb=imdb_id, season_num=season, episode_num=episode_num)
+            meta['title'] = '[COLOR blue]Next Episode: %s - %s[/COLOR]' % (next_air, vidname)
+            addon.add_directory({'mode': 'none'}, meta, is_folder=False, img=meta['cover_url'], fanart=meta['backdrop_url'])            
     setView('episodes', 'episode-view')
     
 
@@ -576,33 +582,33 @@ elif mode == 'search':
     setView(None, 'default-view')
 
 
-elif mode == 'favorites':
+elif mode == 'favourites':
 
     #Add Season/Episode sub folders
     if video_type == VideoType_TV:
-        addon.add_directory({'mode': 'favorites', 'video_type': VideoType_Season}, {'title': '[COLOR blue]Seasons[/COLOR]'})
-        addon.add_directory({'mode': 'favorites', 'video_type': VideoType_Episode}, {'title': '[COLOR blue]Episodes[/COLOR]'})
+        addon.add_directory({'mode': 'favourites', 'video_type': VideoType_Season}, {'title': '[COLOR blue]Seasons[/COLOR]'})
+        addon.add_directory({'mode': 'favourites', 'video_type': VideoType_Episode}, {'title': '[COLOR blue]Episodes[/COLOR]'})
 
-    #Grab saved favorites from DB and populate list
-    saved_favs = cache.get('favorites_' + video_type)
+    #Grab saved favourites from DB and populate list
+    saved_favs = cache.get('favourites_' + video_type)
     if saved_favs:
         favs = sorted(eval(saved_favs), key=lambda fav: fav[1])
         for fav in favs:
             if video_type in (VideoType_Movies, VideoType_Episode):
-                add_video_item(video_type, video_type, fav[5], fav[0].title(), fav[1].title(), imdb=fav[2], season_num=fav[3], episode_num=fav[4], totalitems=len(favs), favorite=True)
+                add_video_item(video_type, video_type, fav[5], fav[0].title(), fav[1].title(), imdb=fav[2], season_num=fav[3], episode_num=fav[4], totalitems=len(favs), favourite=True)
             elif video_type == VideoType_TV:
-                add_video_directory('tvseasons', video_type, fav[5], fav[0].title(), fav[1].title(), imdb=fav[2], season_num=fav[3], totalitems=len(favs), favorite=True)
+                add_video_directory('tvseasons', video_type, fav[5], fav[0].title(), fav[1].title(), imdb=fav[2], season_num=fav[3], totalitems=len(favs), favourite=True)
             elif video_type == VideoType_Season:
-                add_video_directory('tvepisodes', video_type, fav[5], fav[0].title(), fav[1].title(), imdb=fav[2], season_num=fav[3], totalitems=len(favs), favorite=True)
+                add_video_directory('tvepisodes', video_type, fav[5], fav[0].title(), fav[1].title(), imdb=fav[2], season_num=fav[3], totalitems=len(favs), favourite=True)
     setView(video_type +'s', video_type + '-view')
 
 
 elif mode == 'add_fav':
-    add_favorite()
+    add_favourite()
 
 
 elif mode == 'del_fav':
-    remove_favorite()
+    remove_favourite()
 
 
 elif mode == 'refresh_meta':
@@ -610,7 +616,7 @@ elif mode == 'refresh_meta':
         refresh_movie(title)
 
     elif video_type == VideoType_TV:
-        print 'blah'
+        Notify('small', 'Refresh TV Show', 'Feature not yet implemented','')
     elif video_type == VideoType_Season:
         season_refresh(title, imdb_id, season)
     elif video_type == VideoType_Episode:
