@@ -1,3 +1,9 @@
+[B]v1.0.2 (Thursday, 31 January 2013):[/B]
+  - Fixed stupid bug when meta data is disabled
+  
+[B]v1.0.1 (Wednesday, 30 January 2013):[/B]
+  - Quick fix for TV Episodes showing proper sources
+  
 v1.0.0 (Wednesday, 30 January 2013):
   - Added search functionality for all sections
   - Added Favorites
