@@ -142,7 +142,6 @@ def refresh_movie(vidtitle, year=''):
 
     metaget=metahandlers.MetaData()
     search_meta = metaget.search_movies(vidtitle)
-    print search_meta
     
     if search_meta:
         movie_list = []
@@ -333,9 +332,9 @@ if play:
         else:
             html = ''
     
-    elif section == 'tvshows':
+    elif section in ('tvshows', 'episode'):
         #Search within HTML to only get portion of links specific to episode requested
-        r = re.search('<td class="episode"><a name=".+?"></a><b>%s</b>(.+?)(<a name=|<p align="center">)' % title, html, re.DOTALL)
+        r = re.search('<td class="episode"><a name=".+?"></a><b>%s</b>(.+?)(<a name=|<p align="center">)' % name, html, re.DOTALL)
         if r:
             html = r.group(1)
         else:
@@ -560,7 +559,6 @@ elif mode == 'search':
 
     #First check and retrieve previous searches
     search_text = cache.get('search_' + section)
-    print 'OLD SEARCH: %s' % search_text
     
     kb = xbmc.Keyboard(search_text, 'Search Project Free TV - %s' % section.capitalize(), False)
     kb.doModal()
