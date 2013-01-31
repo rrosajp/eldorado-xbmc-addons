@@ -1,3 +1,6 @@
+[B]v1.0.1 (Wednesday, 30 January 2013):[/B]
+  - Quick fix for TV Episodes showing proper sources
+  
 v1.0.0 (Wednesday, 30 January 2013):
   - Added search functionality for all sections
   - Added Favorites
