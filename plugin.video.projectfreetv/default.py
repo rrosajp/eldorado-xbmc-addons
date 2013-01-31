@@ -227,6 +227,7 @@ def get_metadata(video_type, vidtitle, vidname='', year='', imdb='', season_list
         meta['imdb_id'] = imdb
         meta['backdrop_url'] = ''
         meta['year'] = year
+        meta['overlay'] = 0
         if video_type in (VideoType_TV, VideoType_Episode):
             meta['TVShowTitle'] = vidtitle
 
