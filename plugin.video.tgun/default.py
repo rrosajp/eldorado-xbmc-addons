@@ -337,10 +337,31 @@ if play:
         addon.resolve_url(stream_url)
 
 
+def tvchannels(turl = url, tpage = page_num):
+    print 'Retrieving: %s' % turl
+    html = net.http_GET(turl).content
+
+    tpage = int(tpage) 
+    if tpage > 1:
+        addon.add_directory({'mode': 'mainexit'}, {'title': '[COLOR red]Back to Main Menu[/COLOR]'}, img=icon_path + 'back_arrow.png')
+
+    if tpage < 2:
+        tpage = tpage +  1
+        addon.add_directory({'mode': 'tvchannels', 'url': showlist_url_2, 'page_num': tpage}, {'title': '[COLOR blue]Next Page[/COLOR]'}, img=icon_path + 'next_arrow.png')
+
+    match = re.compile('<a[ A-Za-z0-9\"=]* Title[ ]*="(.+?)"[ A-Za-z0-9\"=]* href="(.+?)"><img border="0" src="(.+?)" style=.+?</a>').findall(html)
+    for name, link, thumb in match:
+        if not re.search('http://', thumb):
+            thumb = main_url + thumb
+        if not re.search('veetle', link):
+            addon.add_video_item({'mode': 'channel', 'url': shows_url + link}, {'title': name}, img=thumb)
+            	
+    
 def mainmenu():
-    page = 1
-    addon.add_directory({'mode': 'tvchannels', 'url': showlist_url_1, 'page_num': page}, {'title': 'Live TV Shows & Movies'}, img=icon_path + 'newtv.png')
-    addon.add_directory({'mode': 'classics', 'url': classic_shows_url % page, 'page_num': page}, {'title': 'Classic TV Shows'}, img=icon_path + 'retrotv.png')
+    turl = showlist_url_1
+    tvchannels(turl, 1)
+    #addon.add_directory({'mode': 'tvchannels', 'url': showlist_url_1, 'page_num': page}, {'title': 'Live TV Shows & Movies'}, img=icon_path + 'newtv.png')
+    #addon.add_directory({'mode': 'classics', 'url': classic_shows_url % page, 'page_num': page}, {'title': 'Classic TV Shows'}, img=icon_path + 'retrotv.png')
     #addon.add_directory({'mode': 'livetv', 'url': livetv_pages % '', 'page_num': page}, {'title': 'Live TV Channels'}, img=icon_path + 'retrotv.png')
 
 
@@ -354,23 +375,7 @@ elif mode == 'mainexit':
 
 
 elif mode == 'tvchannels':
-    print 'Retrieving: %s' % url
-    html = net.http_GET(url).content
-
-    page = int(page_num) 
-    if page > 1:
-        addon.add_directory({'mode': 'mainexit'}, {'title': '[COLOR red]Back to Main Menu[/COLOR]'}, img=icon_path + 'back_arrow.png')
-
-    if page < 2:
-        page = page +  1
-        addon.add_directory({'mode': 'tvchannels', 'url': showlist_url_2, 'page_num': page}, {'title': '[COLOR blue]Next Page[/COLOR]'}, img=icon_path + 'next_arrow.png')
-
-    match = re.compile('<a[ A-Za-z0-9\"=]* Title[ ]*="(.+?)"[ A-Za-z0-9\"=]* href="(.+?)"><img border="0" src="(.+?)" style=.+?</a>').findall(html)
-    for name, link, thumb in match:
-        if not re.search('http://', thumb):
-            thumb = main_url + thumb
-        if not re.search('veetle', link):
-            addon.add_video_item({'mode': 'channel', 'url': shows_url + link}, {'title': name}, img=thumb)
+    tvchannels()
 
 
 elif mode == 'classics':
