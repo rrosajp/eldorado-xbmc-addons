@@ -43,7 +43,7 @@
 
 <addon id="plugin.video.tgun"
        name="The GiddyUp Network"
-       version="0.0.28"
+       version="0.0.29"
        provider-name="Eldorado">
   <requires>
     <import addon="xbmc.python" version="2.0"/>

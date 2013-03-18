@@ -1,3 +1,6 @@
+[B]v0.0.29 (Monday, 18 March 2013):[/B]
+  - Removed Classic TV Shows as they are no longer available, no more main menu
+  
 [B]v0.0.28 (Thursday, 24 January 2013):[/B]
   - Added new check on internal streams
   - Updated owncast resolver
