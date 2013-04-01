@@ -1,8 +1,8 @@
 import xbmc, xbmcgui, xbmcplugin
 import urllib
 import re, string
-from t0mm0.common.addon import Addon
-from t0mm0.common.net import Net
+from addon.common.addon import Addon
+from addon.common.net import Net
 import urlresolver
 from metahandler import metahandlers
 
@@ -175,7 +175,7 @@ def season_refresh(vidname, imdb, season_num):
     xbmc.executebuiltin("XBMC.Container.Refresh")
 
 
-def get_metadata(video_type, vidtitle, vidname='', year='', imdb='', season_list=None, season_num=0, episode_num=0):
+def get_metadata(video_type, vidtitle, metaget=None, vidname='', year='', imdb='', season_list=None, season_num=0, episode_num=0):
     
     if meta_setting:
         #Get Meta settings
@@ -185,8 +185,6 @@ def get_metadata(video_type, vidtitle, vidname='', year='', imdb='', season_list
         
         movie_fanart = addon.get_setting('movie-fanart')
         tv_fanart = addon.get_setting('tv-fanart')
-            
-        metaget=metahandlers.MetaData()
     
         if video_type in (VideoType_Movies, VideoType_TV):
             meta = metaget.get_meta(video_type, vidtitle, year=year)
@@ -213,12 +211,16 @@ def get_metadata(video_type, vidtitle, vidname='', year='', imdb='', season_list
         #Check for banners vs posters setting    
         if video_type == VideoType_TV and tv_banners == 'true' and tv_posters == 'false':
             meta['cover_url'] = meta['banner_url']
-        
+
         #Check for and blank out fanart if option disabled
         if video_type==VideoType_Movies and movie_fanart == 'false':
             meta['backdrop_url'] = ''
         elif video_type in (VideoType_TV, VideoType_Episode) and tv_fanart == 'false':
             meta['backdrop_url'] = ''
+
+        if not video_type == VideoType_Season:
+            #Lets keep the name PFTV gives us instead of TVDB
+            meta['title'] = vidname
 
     else:
         meta = {}
@@ -230,7 +232,7 @@ def get_metadata(video_type, vidtitle, vidname='', year='', imdb='', season_list
         meta['overlay'] = 0
         if video_type in (VideoType_TV, VideoType_Episode):
             meta['TVShowTitle'] = vidtitle
-
+    
     return meta
 
 
@@ -261,27 +263,37 @@ def add_contextmenu(use_meta, video_type, link, vidtitle, vidname, favourite, wa
     return contextMenuItems
 
 
-def add_video_directory(mode, video_type, link, vidtitle, vidname, imdb='', year='', season_num=0, totalitems=0, favourite=False):
+def add_video_directory(mode, video_type, link, vidtitle, vidname, metaget=None, imdb='', year='', season_num=0, totalitems=0, favourite=False):
 
-    meta = get_metadata(video_type, vidtitle, year=year, imdb=imdb, season_num=season_num)
+    meta = get_metadata(video_type, vidtitle, metaget=metaget, year=year, imdb=imdb, season_num=season_num)
     contextMenuItems = add_contextmenu(meta_setting, video_type, link, vidtitle, vidname, favourite, watched=meta['overlay'], imdb=meta['imdb_id'], year=year, season_num=season_num)
 
     meta['title'] = vidname
-    addon.add_directory({'mode': mode, 'url': link, 'video_type': VideoType_Season, 'imdb_id': meta['imdb_id'], 'title': vidtitle, 'name': vidname, 'season': season_num}, meta, contextMenuItems, context_replace=True, img=meta['cover_url'], fanart=meta['backdrop_url'], total_items=totalitems)
+
+    #With meta data on, set watched/unwatched values for a tv show
+    if meta_setting and video_type == VideoType_TV:
+        properties = {}
+        episodes_unwatched = str(int(meta['episode']) - meta['playcount'])
+        properties['UnWatchedEpisodes'] = episodes_unwatched
+        properties['WatchedEpisodes'] = str(meta['playcount'])
+    else:
+        properties = None
+
+    addon.add_directory({'mode': mode, 'url': link, 'video_type': VideoType_Season, 'imdb_id': meta['imdb_id'], 'title': vidtitle, 'name': vidname, 'season': season_num}, meta, properties=properties, contextmenu_items=contextMenuItems, context_replace=True, img=meta['cover_url'], fanart=meta['backdrop_url'], total_items=totalitems)
 
 
-def add_video_item(video_type, section, link, vidtitle, vidname, year='', imdb='', season_num=0, episode_num=0, totalitems=0, favourite=False):
-
-    meta = get_metadata(video_type, vidtitle, vidname, year, imdb=imdb, season_num=season_num, episode_num=episode_num)
+def add_video_item(video_type, section, link, vidtitle, vidname, metaget=None, year='', imdb='', season_num=0, episode_num=0, totalitems=0, favourite=False):
+        
+    meta = get_metadata(video_type, vidtitle,  metaget=metaget, vidname=vidname, year=year, imdb=imdb, season_num=season_num, episode_num=episode_num)
     if video_type == VideoType_Movies:
         contextMenuItems = add_contextmenu(meta_setting, video_type, link, vidtitle, meta['title'], favourite, watched=meta['overlay'], imdb=meta['imdb_id'], year=meta['year'])
     else:
         contextMenuItems = add_contextmenu(meta_setting, video_type, link, vidtitle, meta['title'], favourite, watched=meta['overlay'], imdb=meta['imdb_id'], season_num=season_num, episode_num=episode_num)
     
     if video_type == VideoType_Movies:
-        addon.add_video_item({'url': link, 'video_type': video_type, 'section': section, 'title': vidtitle, 'name': vidname}, meta, contextMenuItems, context_replace=True, img=meta['cover_url'], fanart=meta['backdrop_url'], total_items=totalitems)
+        addon.add_video_item({'url': link, 'video_type': video_type, 'section': section, 'title': vidtitle, 'name': vidname}, meta, contextmenu_items=contextMenuItems, context_replace=True, img=meta['cover_url'], fanart=meta['backdrop_url'], total_items=totalitems)
     elif video_type == VideoType_Episode:
-        addon.add_video_item({'url': link, 'video_type': video_type, 'section': section, 'title': vidtitle, 'name': vidname}, meta, contextMenuItems, context_replace=True, img=meta['cover_url'], fanart=meta['backdrop_url'], total_items=totalitems)
+        addon.add_video_item({'url': link, 'video_type': video_type, 'section': section, 'title': vidtitle, 'name': vidname}, meta, contextmenu_items=contextMenuItems, context_replace=True, img=meta['cover_url'], fanart=meta['backdrop_url'], total_items=totalitems)
 
 
 # Create A-Z Menu
@@ -299,6 +311,11 @@ def AZ_Menu(type, url):
 # Get List of Movies from given URL
 def GetMovieList(url):
 
+    if meta_setting:
+        metaget=metahandlers.MetaData()
+    else:
+        metaget=None
+
     html = net.http_GET(url).content
     match = re.compile('<td width="97%" class="mnlcategorylist"><a href="(.+?)"><b>(.+?)[ (]*([0-9]{0,4})[)]*</b></a>(.+?)<').findall(html)
 
@@ -308,7 +325,7 @@ def GetMovieList(url):
           newUrl = MovieUrl + link
        else:
           newUrl = url + "/" + link
-       add_video_item(VideoType_Movies, VideoType_Movies, newUrl, vidname, vidname, totalitems=len(match))
+       add_video_item(VideoType_Movies, VideoType_Movies, newUrl, vidname, vidname, metaget=metaget, totalitems=len(match))
     setView('movies', 'movie-view')
 
 if play:
@@ -396,6 +413,11 @@ elif mode == 'moviesgenre':
 
 
 elif mode == 'movieslatest':
+
+    if meta_setting:
+        metaget=metahandlers.MetaData()
+    else:
+        metaget=None
     latestlist = []
     url = MovieUrl
     html = net.http_GET(url).content
@@ -408,11 +430,17 @@ elif mode == 'movieslatest':
     latestlist = list(set(latestlist))
 
     for movie in latestlist:
-        add_video_item(VideoType_Movies, 'latestmovies', url, movie, movie, totalitems=len(match))
+        add_video_item(VideoType_Movies, 'latestmovies', url, movie, movie, metaget=metaget, totalitems=len(match))
     setView('movies', 'movie-view')
 
 
 elif mode == 'moviespopular':
+
+    if meta_setting:
+        metaget=metahandlers.MetaData()
+    else:
+        metaget=None
+        
     url = MainUrl
     html = net.http_GET(url).content
     match = re.compile('''<td align="center"><a href="(.+?)">(.+?)</a></td>''',re.DOTALL).findall(html)
@@ -421,7 +449,7 @@ elif mode == 'moviespopular':
     for link, vidname in match:
        is_movie = re.search('/movies/', link)
        if vidname != "...more" and is_movie:
-          add_video_item(VideoType_Movies, VideoType_Movies, link, vidname, vidname, totalitems=len(match))
+          add_video_item(VideoType_Movies, VideoType_Movies, link, vidname, vidname, metaget=metaget, totalitems=len(match))
     setView('movies', 'movie-view')
 
 
@@ -461,6 +489,11 @@ elif mode == 'tvseries-az':
     url = TVUrl
     letter = addon.queries['letter']
     
+    if meta_setting:
+        metaget=metahandlers.MetaData()
+    else:
+        metaget=None
+        
     html = net.http_GET(url).content
     r = re.search('<a name="%s">(.+?)(<a name=|</table>)' % letter, html, re.DOTALL)
     
@@ -470,11 +503,17 @@ elif mode == 'tvseries-az':
             vidname = vidtitle
             if newep:
                 vidname = vidtitle + ' [COLOR red]New Episode![/COLOR]'
-            add_video_directory('tvseasons', VideoType_TV, TVUrl + link, vidtitle, vidname, totalitems=len(match))
+            add_video_directory('tvseasons', VideoType_TV, TVUrl + link, vidtitle, vidname, metaget=metaget, totalitems=len(match))
     setView('tvshows', 'tvshow-view')
 
 
 elif mode == 'tvlastadded':
+    
+    if meta_setting:
+        metaget=metahandlers.MetaData()
+    else:
+        metaget=None
+        
     html = net.http_GET(url).content
     full_match = re.compile('class="mnlcategorylist"><a href="(.+?)#.+?"><b>((.+?) - Season ([0-9]+) Episode ([0-9]+)) <').findall(html)
     match = re.compile('<a name="(.+?)"></a>(.+?)(<td colspan="2">|</table>)', re.DOTALL).findall(html)
@@ -485,27 +524,39 @@ elif mode == 'tvlastadded':
 
             #Since we are getting season level items, try to grab the imdb_id of the TV Show first to make meta get easier
             if meta_setting:
-                meta = get_metadata(VideoType_TV, vidtitle, year=year)
+                meta = get_metadata(VideoType_TV, vidtitle, metaget=metaget, year=year)
                 imdb = meta['imdb_id']
             else:
                 imdb = ''
 
-            add_video_directory('tvepisodes', VideoType_Season, TVUrl + link, vidtitle, vidname, imdb=imdb, season_num=season_num, totalitems=len(full_match))
+            add_video_directory('tvepisodes', VideoType_Season, TVUrl + link, vidtitle, vidname, metaget=metaget, imdb=imdb, season_num=season_num, totalitems=len(full_match))
     setView('seasons', 'season-view')
 
 
 elif mode == 'tvpopular':
+    
+    if meta_setting:
+        metaget=metahandlers.MetaData()
+    else:
+        metaget=None
+        
     url = MainUrl
     html = net.http_GET(url).content
     match = re.compile('<td align="center"><a href="(.+?)">(.+?)</a></td>').findall(html)
     for link, vidname in match:
         is_tv = re.search('/internet/', link)
         if vidname != "...more" and is_tv:
-            add_video_directory('tvseasons', VideoType_TV, link, vidname, vidname, totalitems=len(match))
+            add_video_directory('tvseasons', VideoType_TV, link, vidname, vidname, metaget=metaget, totalitems=len(match))
     setView('tvshows', 'tvshow-view')
 
 
 elif mode == 'tvseasons':
+
+    if meta_setting:
+        metaget=metahandlers.MetaData()
+    else:
+        metaget=None
+        
     html = net.http_GET(url).content
     match = re.compile('class="mnlcategorylist"><a href="(.+?)"><b>(.+?)</b></a>(.+?)<').findall(html)
     seasons = re.compile('class="mnlcategorylist"><a href=".+?"><b>Season ([0-9]+)</b></a>.+?<').findall(html)
@@ -517,7 +568,7 @@ elif mode == 'tvseasons':
 
     season_meta = {}    
     if meta_setting:
-        season_meta = get_metadata(video_type, title, imdb=imdb_id, season_list=seasons)
+        season_meta = get_metadata(video_type, title, metaget=metaget, imdb=imdb_id, season_list=seasons)
     else:
         meta = {}
         meta['TVShowTitle'] = title
@@ -533,12 +584,17 @@ elif mode == 'tvseasons':
         meta['title'] = season_num + episodes
         link = url + '/' + link
         contextMenuItems = add_contextmenu(meta_setting, video_type, link, title, meta['title'], favourite=False, watched=meta['overlay'], imdb=meta['imdb_id'], season_num=seasons[num])
-        addon.add_directory({'mode': 'tvepisodes', 'url': link, 'video_type': VideoType_Season, 'imdb_id': meta['imdb_id'], 'title': title, 'name': meta['title'], 'season': seasons[num]}, meta, contextMenuItems, context_replace=True, img=meta['cover_url'], fanart=meta['backdrop_url'], total_items=len(match))
+        addon.add_directory({'mode': 'tvepisodes', 'url': link, 'video_type': VideoType_Season, 'imdb_id': meta['imdb_id'], 'title': title, 'name': meta['title'], 'season': seasons[num]}, meta, contextmenu_items=contextMenuItems, context_replace=True, img=meta['cover_url'], fanart=meta['backdrop_url'], total_items=len(match))
         num = num + 1
     setView('seasons', 'season-view')
 
 
 elif mode == 'tvepisodes':
+    if meta_setting:
+        metaget=metahandlers.MetaData()
+    else:
+        metaget=None
+        
     html = net.http_GET(url).content.encode('utf-8')
     match = re.compile('<td class="episode"><a name=".+?"></a>(.*?)<b>(.+?)</b></td>[\r\n\t]*(<td align="right".+?;Air Date: (.+?)</div>)*', re.DOTALL).findall(html)
     for next_episode, vidname, empty, next_air in match:
@@ -548,40 +604,83 @@ elif mode == 'tvepisodes':
         else:
             episode_num = 0
         if not next_episode:
-            add_video_item(VideoType_Episode, VideoType_Episode, url, title, vidname, imdb=imdb_id, season_num=season, episode_num=episode_num, totalitems=len(match))
+            add_video_item(VideoType_Episode, VideoType_Episode, url, title, vidname, metaget=metaget, imdb=imdb_id, season_num=season, episode_num=episode_num, totalitems=len(match))
         else:
-            meta = get_metadata(VideoType_Episode, title, vidname, imdb=imdb_id, season_num=season, episode_num=episode_num)
+            meta = get_metadata(VideoType_Episode, title, metaget=metaget, vidname=vidname, imdb=imdb_id, season_num=season, episode_num=episode_num)
             meta['title'] = '[COLOR blue]Next Episode: %s - %s[/COLOR]' % (next_air, vidname)
             addon.add_directory({'mode': 'none'}, meta, is_folder=False, img=meta['cover_url'], fanart=meta['backdrop_url'])            
     setView('episodes', 'episode-view')
-    
+
 
 elif mode == 'search':
 
-    #First check and retrieve previous searches
-    search_text = cache.get('search_' + section)
+    if meta_setting:
+        metaget=metahandlers.MetaData()
+    else:
+        metaget=None
+
+    search_text = ""
+    search_list = []
+    new_search = False
+    search_hist = cache.get('search_' + section)
     
-    kb = xbmc.Keyboard(search_text, 'Search Project Free TV - %s' % section.capitalize(), False)
-    kb.doModal()
-    if (kb.isConfirmed()):                   
-        search_text = kb.getText()
-        if search_text:
-            cache.set('search_' + section, search_text)
-            search_quoted = urllib.quote(search_text)
-            url = SearchUrl % (search_quoted, section)
-            html = net.http_GET(url).content    
-            
-            match = re.compile('<td width="97%" class="mnlcategorylist">[\r\n\t]*<a href="(.+?)">[\r\n\t]*<b>(.+?)[ (]*([0-9]{0,4})[)]*</b>').findall(html)
+    #Convert returned string back into a list
+    if search_hist:
+        search_list = eval(search_hist)
+
+    #If we have historical search items, prompt the user with list
+    if search_list:
+        dialog = xbmcgui.Dialog()
+        
+        #Add a place holder at list index 0 for allowing user to do new searches
+        tmp_search_list = list(search_list)
+        tmp_search_list.insert(0, 'New Search')
+        index = dialog.select('Select Search', tmp_search_list)
+
+        #If index is 0 user selected New Search, if greater than user selected existing item
+        if index > 0:
+            search_text = tmp_search_list[index]
+        elif index == 0:
+            new_search = True
+
+    #If a new search is required, bring up the keyboard
+    if (not search_text and not index == -1) or new_search:
+        kb = xbmc.Keyboard(search_text, 'Search Project Free TV - %s' % section.capitalize(), False)
+        kb.doModal()
+        if (kb.isConfirmed()):                   
+            search_text = kb.getText()
+
+    #If we have some text to search by, lets do it
+    if search_text:
+
+        #Add to our search history only if it doesn't already exist
+        if search_text not in search_list:
+            search_list.insert(0, search_text)
+            cache.set('search_' + section, str(search_list))
+
+        search_quoted = urllib.quote(search_text)
+        url = SearchUrl % (search_quoted, section)
+        html = net.http_GET(url).content    
+        
+        match = re.compile('<td width="97%" class="mnlcategorylist">[\r\n\t]*<a href="(.+?)">[\r\n\t]*<b>(.+?)[ (]*([0-9]{0,4})[)]*</b>').findall(html)
+        if match:
             for link, vidname, year in match:
                 link = MainUrl + link
                 if re.search('/movies/', link):
-                    add_video_item(VideoType_Movies, VideoType_Movies, link, vidname, vidname, year, totalitems=len(match))
+                    add_video_item(VideoType_Movies, VideoType_Movies, link, vidname, vidname, metaget=metaget, year=year, totalitems=len(match))
                 else:
-                    add_video_directory('tvseasons', VideoType_TV, link, vidname, vidname, year=year, totalitems=len(match))
+                    add_video_directory('tvseasons', VideoType_TV, link, vidname, vidname, metaget=metaget, year=year, totalitems=len(match))
+        else:
+            Notify('small', 'No Results', 'No search results found','')
     setView(None, 'default-view')
 
 
 elif mode == 'favourites':
+    
+    if meta_setting:
+        metaget=metahandlers.MetaData()
+    else:
+        metaget=None
 
     #Add Season/Episode sub folders
     if video_type == VideoType_TV:
@@ -594,11 +693,11 @@ elif mode == 'favourites':
         favs = sorted(eval(saved_favs), key=lambda fav: fav[1])
         for fav in favs:
             if video_type in (VideoType_Movies, VideoType_Episode):
-                add_video_item(video_type, video_type, fav[5], fav[0].title(), fav[1].title(), imdb=fav[2], season_num=fav[3], episode_num=fav[4], totalitems=len(favs), favourite=True)
+                add_video_item(video_type, video_type, fav[5], fav[0].title(), fav[1].title(), metaget=metaget, imdb=fav[2], season_num=fav[3], episode_num=fav[4], totalitems=len(favs), favourite=True)
             elif video_type == VideoType_TV:
-                add_video_directory('tvseasons', video_type, fav[5], fav[0].title(), fav[1].title(), imdb=fav[2], season_num=fav[3], totalitems=len(favs), favourite=True)
+                add_video_directory('tvseasons', video_type, fav[5], fav[0].title(), fav[1].title(), metaget=metaget, imdb=fav[2], season_num=fav[3], totalitems=len(favs), favourite=True)
             elif video_type == VideoType_Season:
-                add_video_directory('tvepisodes', video_type, fav[5], fav[0].title(), fav[1].title(), imdb=fav[2], season_num=fav[3], totalitems=len(favs), favourite=True)
+                add_video_directory('tvepisodes', video_type, fav[5], fav[0].title(), fav[1].title(), metaget=metaget, imdb=fav[2], season_num=fav[3], totalitems=len(favs), favourite=True)
     setView(video_type +'s', video_type + '-view')
 
 
