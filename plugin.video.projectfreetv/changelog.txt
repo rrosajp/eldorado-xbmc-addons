@@ -1,3 +1,9 @@
+[B]v1.0.3 (Friday, 05 February 2013):[/B]
+  - Fixed blank episode names
+  - Cleaned up code a bit, hopefully make meta data scraping faster
+  - Added TV Shows watched/unwatched counts
+  - Added search history
+
 [B]v1.0.2 (Thursday, 31 January 2013):[/B]
   - Fixed stupid bug when meta data is disabled
   
