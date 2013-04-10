@@ -116,17 +116,24 @@ def setView(content, viewType):
 def add_favourite():
     saved_favs = cache.get('favourites_' + video_type)
     favs = []
-    
+
+    #Check for and remove COLOR tags which were added to titles
+    r = re.search('(.+?) \[COLOR red\]', name)
+    if r:
+        vidname = r.group(1)
+    else:
+        vidname = name
+        
     if saved_favs:
         favs = eval(saved_favs)
         if favs:
-            if (title, name, imdb_id, season, episode, url) in favs:
-                Notify('small', 'Favourite Already Exists', name.title() + ' already exists in your PTV favourites','')
+            if (title, vidname, imdb_id, season, episode, url) in favs:
+                Notify('small', 'Favourite Already Exists', vidname.title() + ' already exists in your PTV favourites','')
                 return
 
-    favs.append((title, name, imdb_id, season, episode, url))
+    favs.append((title, vidname, imdb_id, season, episode, url))
     cache.set('favourites_' + video_type, str(favs))
-    Notify('small', 'Added to favourites', name.title() + ' added to your PTV favourites','')
+    Notify('small', 'Added to favourites', vidname.title() + ' added to your PTV favourites','')
 
 
 def remove_favourite():
@@ -158,6 +165,27 @@ def refresh_movie(vidtitle, year=''):
     else:
         msg = ['No matches found']
         addon.show_ok_dialog(msg, 'Refresh Results')
+
+
+def refresh_tv(vidtitle, imdb_id):
+
+    metaget=metahandlers.MetaData()      
+    show_list = metaget.get_tvdb_list(vidtitle)       
+    name_list = []
+    filtered_show_list = []
+    for show in show_list:
+        (seriesid, SeriesName, IMDB_ID) = show
+        if IMDB_ID != None:
+            filtered_show_list.append([seriesid, SeriesName, IMDB_ID])
+            name_list.append(SeriesName)
+
+    dialog = xbmcgui.Dialog()
+    index = dialog.select('Choose', name_list)
+ 
+    if index > -1:
+        metaget.update_meta('tvshow', vidtitle, imdb_id, new_tmdb_id=filtered_show_list[index][0], new_imdb_id=filtered_show_list[index][2])
+        xbmc.executebuiltin("Container.Refresh")
+        Notify('small', 'Updated Metadata', filtered_show_list[index][1],'') 
 
 
 def episode_refresh(vidname, imdb, season_num, episode_num):
@@ -243,9 +271,9 @@ def add_contextmenu(use_meta, video_type, link, vidtitle, vidname, favourite, wa
 
     #Check if we are listing items in the Favourites list
     if favourite:
-        contextMenuItems.append(('Delete from Favourites', 'XBMC.RunPlugin(%s?mode=del_fav&video_type=%s&title=%s&name=%s&url=%s&imdb_id=%s&season=%s&episode=%s)' % (sys.argv[0], video_type, vidtitle.encode('utf-8'), vidname.encode('utf-8'), link, imdb, season_num, episode_num)))
+        contextMenuItems.append(('Delete from Favourites', 'XBMC.RunPlugin(%s)' % addon.build_plugin_url({'mode': 'del_fav', 'video_type': video_type, 'title': vidtitle, 'name':vidname, 'url':link, 'imdb_id':imdb, 'season': season_num, 'episode': episode_num})))
     else:
-        contextMenuItems.append(('Add to Favourites', 'XBMC.RunPlugin(%s?mode=add_fav&video_type=%s&title=%s&name=%s&url=%s&imdb_id=%s&season=%s&episode=%s)' % (sys.argv[0], video_type, vidtitle.encode('utf-8'), vidname.encode('utf-8'), link, imdb, season_num, episode_num)))
+        contextMenuItems.append(('Add to Favourites', 'XBMC.RunPlugin(%s)' % addon.build_plugin_url({'mode': 'add_fav', 'video_type': video_type, 'title': vidtitle, 'name':vidname, 'url':link, 'imdb_id':imdb, 'season': season_num, 'episode': episode_num})))
 
     #Meta is turned on so enable extra context menu options
     if use_meta:
@@ -344,7 +372,7 @@ if play:
     elif section == 'latestmovies':
         #Search within HTML to only get portion of links specific to movie name
         # TO DO - currently does not return enough of the header for the first link
-        r = re.search('<div>%s</div>(.+?)(<div>(?!%s)|<p align="center">)' % (title, title), html, re.DOTALL)
+        r = re.search('<div>%s</div>(.+?)(<div>(?!%s)|<p align="center">)' % (re.escape(title), re.escape(title)), html, re.DOTALL)
         if r:
             html = r.group(0)
         else:
@@ -352,7 +380,7 @@ if play:
     
     elif section in ('tvshows', 'episode'):
         #Search within HTML to only get portion of links specific to episode requested
-        r = re.search('<td class="episode"><a name=".+?"></a><b>%s</b>(.+?)(<a name=|<p align="center">)' % name, html, re.DOTALL)
+        r = re.search('<td class="episode"><a name=".+?"></a><b>%s</b>(.+?)(<a name=|<p align="center">)' % re.escape(name), html, re.DOTALL) 
         if r:
             html = r.group(1)
         else:
@@ -388,7 +416,6 @@ if mode == 'main':
 
 elif mode == 'movies':
     addon.add_directory({'mode': 'moviesaz', 'section': 'moviesaz'}, {'title': 'A-Z'}, img=IconPath + "AZ.png")
-    addon.add_directory({'mode': 'moviespopular', 'section': 'moviespopular'}, {'title': 'Popular'})
     addon.add_directory({'mode': 'favourites', 'video_type': VideoType_Movies}, {'title': 'Favourites'})
     addon.add_directory({'mode': 'search', 'section': SearchMovies}, {'title': 'Search'})
     addon.add_directory({'mode': 'movieslatest', 'section': 'movieslatest'}, {'title': 'Latest Added Links'})
@@ -431,25 +458,6 @@ elif mode == 'movieslatest':
 
     for movie in latestlist:
         add_video_item(VideoType_Movies, 'latestmovies', url, movie, movie, metaget=metaget, totalitems=len(match))
-    setView('movies', 'movie-view')
-
-
-elif mode == 'moviespopular':
-
-    if meta_setting:
-        metaget=metahandlers.MetaData()
-    else:
-        metaget=None
-        
-    url = MainUrl
-    html = net.http_GET(url).content
-    match = re.compile('''<td align="center"><a href="(.+?)">(.+?)</a></td>''',re.DOTALL).findall(html)
-
-    # Add each link found as a directory item
-    for link, vidname in match:
-       is_movie = re.search('/movies/', link)
-       if vidname != "...more" and is_movie:
-          add_video_item(VideoType_Movies, VideoType_Movies, link, vidname, vidname, metaget=metaget, totalitems=len(match))
     setView('movies', 'movie-view')
 
 
@@ -542,7 +550,7 @@ elif mode == 'tvpopular':
         
     url = MainUrl
     html = net.http_GET(url).content
-    match = re.compile('<td align="center"><a href="(.+?)">(.+?)</a></td>').findall(html)
+    match = re.compile('<td class="tleft".*?><a href="(.+?)/">(.+?)</a></td>').findall(html)
     for link, vidname in match:
         is_tv = re.search('/internet/', link)
         if vidname != "...more" and is_tv:
@@ -596,7 +604,7 @@ elif mode == 'tvepisodes':
         metaget=None
         
     html = net.http_GET(url).content.encode('utf-8')
-    match = re.compile('<td class="episode"><a name=".+?"></a>(.*?)<b>(.+?)</b></td>[\r\n\t]*(<td align="right".+?;Air Date: (.+?)</div>)*', re.DOTALL).findall(html)
+    match = re.compile('<td class="episode"><a name=".+?"></a>(.*?)<b>(.+?)</b></td>[\r\n\t]*(<td align="right".+?;Air Date: (.*?)</div>)*', re.DOTALL).findall(html)
     for next_episode, vidname, empty, next_air in match:
         episode_num = re.search('([0-9]{0,2})\.', vidname)
         if episode_num:
@@ -607,7 +615,8 @@ elif mode == 'tvepisodes':
             add_video_item(VideoType_Episode, VideoType_Episode, url, title, vidname, metaget=metaget, imdb=imdb_id, season_num=season, episode_num=episode_num, totalitems=len(match))
         else:
             meta = get_metadata(VideoType_Episode, title, metaget=metaget, vidname=vidname, imdb=imdb_id, season_num=season, episode_num=episode_num)
-            meta['title'] = '[COLOR blue]Next Episode: %s - %s[/COLOR]' % (next_air, vidname)
+            if next_air: 
+                meta['title'] = '[COLOR blue]Next Episode: %s - %s[/COLOR]' % (next_air, vidname)
             addon.add_directory({'mode': 'none'}, meta, is_folder=False, img=meta['cover_url'], fanart=meta['backdrop_url'])            
     setView('episodes', 'episode-view')
 
@@ -619,6 +628,7 @@ elif mode == 'search':
     else:
         metaget=None
 
+    index = 0
     search_text = ""
     search_list = []
     new_search = False
@@ -626,7 +636,10 @@ elif mode == 'search':
     
     #Convert returned string back into a list
     if search_hist:
-        search_list = eval(search_hist)
+        try:
+            search_list = eval(search_hist)
+        except:
+            search_list.insert(0, search_hist)
 
     #If we have historical search items, prompt the user with list
     if search_list:
@@ -714,7 +727,7 @@ elif mode == 'refresh_meta':
         refresh_movie(title)
 
     elif video_type == VideoType_TV:
-        Notify('small', 'Refresh TV Show', 'Feature not yet implemented','')
+        refresh_tv(title, imdb_id) 
     elif video_type == VideoType_Season:
         season_refresh(title, imdb_id, season)
     elif video_type == VideoType_Episode:
