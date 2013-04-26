@@ -1,3 +1,7 @@
+[B]v0.0.30 (Friday, 26 April 2013):[/B]
+  - Updated for new site layout
+  - Temporary fixes until the new tgun site is finalized
+  
 [B]v0.0.29 (Monday, 18 March 2013):[/B]
   - Removed Classic TV Shows as they are no longer available, no more main menu
   
