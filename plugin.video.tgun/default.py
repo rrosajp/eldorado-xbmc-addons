@@ -49,7 +49,6 @@ livetv_url = main_url + 'usa/'
 livetv_pages = livetv_url + 'chmtv%s.php'
 addon_path = xaddon.getAddonInfo('path')
 icon_path = addon_path + "/icons/"
-par = ''
 
 ######################################################################
 
@@ -252,6 +251,7 @@ def owncast(embedcode, url):
 def playerindex(embedcode):
     link = re.search('iframe src="(.+?)"', embedcode).group(1)
     link = urllib2.unquote(urllib2.unquote(link))
+    print 'Retrieving: %s' % link 
     html = net.http_GET('http://www.tgun.tv/shows/' + link).content
     return html
 
@@ -263,7 +263,7 @@ def get_embed(html):
     embedcode = re.search(embedtext, html, re.DOTALL).group(1)
     
     #Remove any commented out sources to we don't try to use them
-    embedcode = re.sub('(?s)<!--.*?-->', '', embedcode).strip()
+    #embedcode = re.sub('(?s)<!--.*?-->', '', embedcode).strip()
     return embedcode
 
 
@@ -292,13 +292,13 @@ if play:
     #Check for channel name at the end of url
     global par
     par = urlparse(url).query
-    
+      
     html = net.http_GET(url).content
     embedcode = get_embed(html)
 
-    if re.search('playerindex.php', embedcode):
-        channel = urllib2.unquote(re.search('src="playerindex.php\?(.+?)"', embedcode).group(1))
-        html = playerindex(embedcode)
+    if re.search('playerindex.php', html):
+        #channel = urllib2.unquote(re.search('src="playerindex.php\?(.+?)"', embedcode).group(1))
+        #html = playerindex(embedcode)
         embedcode = ''
 
     if re.search('http://tgun.tv/embed/', embedcode):
@@ -320,7 +320,7 @@ if play:
                         
                         if stream:
                             if '+' in stream.group(2):
-                                playpath = channel
+                                playpath = par
                             else:
                                 playpath = stream.group(2)
                             stream_url = stream.group(1) + ' playpath=' + playpath + ' swfUrl=http://www.tgun.tv' + stream.group(3) + ' live=true'                        
@@ -356,12 +356,12 @@ def tvchannels(turl = url, tpage = page_num):
     html = net.http_GET(turl).content
 
     tpage = int(tpage) 
-    if tpage > 1:
-        addon.add_directory({'mode': 'mainexit'}, {'title': '[COLOR red]Back to Main Menu[/COLOR]'}, img=icon_path + 'back_arrow.png')
+    #if tpage > 1:
+    #    addon.add_directory({'mode': 'mainexit'}, {'title': '[COLOR red]Back to Main Menu[/COLOR]'}, img=icon_path + 'back_arrow.png')
 
-    if tpage < 2:
-        tpage = tpage +  1
-        addon.add_directory({'mode': 'tvchannels', 'url': showlist_url_2, 'page_num': tpage}, {'title': '[COLOR blue]Next Page[/COLOR]'}, img=icon_path + 'next_arrow.png')
+    #if tpage < 2:
+    #    tpage = tpage +  1
+    #    addon.add_directory({'mode': 'tvchannels', 'url': showlist_url_2, 'page_num': tpage}, {'title': '[COLOR blue]Next Page[/COLOR]'}, img=icon_path + 'next_arrow.png')
 
     #Remove any commented out sources to we don't try to use them
     html = re.sub('(?s)<!--.*?-->', '', html).strip()
@@ -370,8 +370,9 @@ def tvchannels(turl = url, tpage = page_num):
     for name, link, thumb in match:
         if not re.search('http://', thumb):
             thumb = main_url + thumb
-        if not re.search('veetle', link):
-            addon.add_video_item({'mode': 'channel', 'url': link}, {'title': name}, img=thumb)
+        if re.search('http://www.tgun.tv/menus/players/playerindex.php', link):
+            name = name + '[COLOR blue]*[/COLOR]'
+        addon.add_video_item({'mode': 'channel', 'url': link}, {'title': name}, img=thumb)
             	
     
 def mainmenu():
