@@ -2,6 +2,7 @@ import xbmc, xbmcgui, xbmcaddon, xbmcplugin
 import urllib2
 import re, string
 import os
+from urlparse import urlparse
 from t0mm0.common.addon import Addon
 from t0mm0.common.net import Net
 net = Net()
@@ -39,7 +40,8 @@ print 'Page: ' + str(page_num)
 
 main_url = 'http://www.tgun.tv/'
 shows_url = main_url + 'shows/'
-showlist_url_1 = shows_url + 'chmm.php'
+#showlist_url_1 = shows_url + 'chmm.php'
+showlist_url_1 = "http://www.tgun.tv/menus/shows/chmenu.php"
 showlist_url_2 = shows_url + 'chmm2.php'
 classic_url = main_url + 'classic/'
 classic_shows_url = classic_url + 'chm%s.php'
@@ -47,6 +49,7 @@ livetv_url = main_url + 'usa/'
 livetv_pages = livetv_url + 'chmtv%s.php'
 addon_path = xaddon.getAddonInfo('path')
 icon_path = addon_path + "/icons/"
+par = ''
 
 ######################################################################
 
@@ -86,6 +89,8 @@ def justintv(embedcode):
 
     channel = re.search('data="(.+?)"', embedcode, re.DOTALL).group(1)  
     channel_name = re.search('http://www.justin.tv/widgets/.+?\?channel=(.+)', channel).group(1)
+    
+    channel_name = par
     
     api_url = 'http://usher.justin.tv/find/%s.json?type=live' % channel_name
     print 'Retrieving: %s' % api_url
@@ -163,19 +168,22 @@ def mediaplayer(embedcode):
 
 def ilive(embedcode):
     
-    channel = re.search('<script type="text/javascript" src="http://www.ilive.to/embed/(.+?)&width=.+?"></script>', embedcode)
+    #channel = re.search('<script type="text/javascript" src="http://www.ilive.to/embed/(.+?)&width=.+?"></script>', embedcode)
+    channel = par
     
     if channel:
-        url = 'http://www.ilive.to/embedplayer.php?channel=%s' % channel.group(1)
+        #url = 'http://www.ilive.to/embedplayer.php?channel=%s' % channel.group(1)
+        url = 'http://www.ilive.to/embedplayer.php?channel=%s' % channel
         print 'Retrieving: %s' % url
         html = net.http_GET(url).content
-        filename = re.search("'file': '([^&]+).flv'", html).group(1)
+        filename = re.search('file: "([^&]+).flv"', html).group(1)
+        rtmp = re.search('streamer: "(.+?)",', html).group(1)
     else:
         filename = re.search('streamer=rtmp://live.ilive.to/edge&file=(.+?)&autostart=true&controlbar=bottom"', embedcode).group(1)
         url = 'http://www.ilive.to/embedplayer.php'
 
-    swf = 'http://cdn.static.ilive.to/jwplayer/player_embed.swf'
-    return 'rtmp://live.ilive.to/redirect playPath=' + filename + ' swfUrl=' + swf + ' swfVfy=true live=true pageUrl=' + url
+    swf = 'http://player.ilive.to/ilive-plugin.swf'
+    return rtmp + ' playPath=' + filename + ' swfUrl=' + swf + ' swfVfy=true live=true pageUrl=' + url
 
 
 def embedrtmp(embedcode):
@@ -249,8 +257,10 @@ def playerindex(embedcode):
 
 
 def get_embed(html):
-    embedtext = "(<object type=\"application/x-shockwave-flash\"|<!--[0-9]* start embed [0-9]*-->|<!-- BEGIN PLAYER CODE.+?-->|<!-- Begin PLAYER CODE.+?-->|<!--[ ]*START PLAYER CODE [&ac=270 kayakcon11]*-->|)(.+?)<!-- END PLAYER CODE [A-Za-z0-9]*-->"
-    embedcode = re.search(embedtext, html, re.DOTALL).group(2)
+    #embedtext = "(<object type=\"application/x-shockwave-flash\"|<!--[0-9]* start embed [0-9]*-->|<!-- BEGIN PLAYER CODE.+?-->|<!-- Begin PLAYER CODE.+?-->|<!--[ ]*START PLAYER CODE [&ac=270 kayakcon11]*-->|)(.+?)<!-- END PLAYER CODE [A-Za-z0-9]*-->"
+    embedtext = "-->(.+?)<!-- start Ad Code 2 -->"
+    #embedcode = re.search(embedtext, html, re.DOTALL).group(2)
+    embedcode = re.search(embedtext, html, re.DOTALL).group(1)
     
     #Remove any commented out sources to we don't try to use them
     embedcode = re.sub('(?s)<!--.*?-->', '', embedcode).strip()
@@ -279,6 +289,10 @@ def determine_stream(embedcode, url):
 
 if play:
 
+    #Check for channel name at the end of url
+    global par
+    par = urlparse(url).query
+    
     html = net.http_GET(url).content
     embedcode = get_embed(html)
 
@@ -349,12 +363,15 @@ def tvchannels(turl = url, tpage = page_num):
         tpage = tpage +  1
         addon.add_directory({'mode': 'tvchannels', 'url': showlist_url_2, 'page_num': tpage}, {'title': '[COLOR blue]Next Page[/COLOR]'}, img=icon_path + 'next_arrow.png')
 
-    match = re.compile('<a[ A-Za-z0-9\"=]* Title[ ]*="(.+?)"[ A-Za-z0-9\"=]* href="(.+?)"><img border="0" src="(.+?)" style=.+?</a>').findall(html)
+    #Remove any commented out sources to we don't try to use them
+    html = re.sub('(?s)<!--.*?-->', '', html).strip()
+    
+    match = re.compile('<a Title="(.+?)" href="(.+?)" target="vid_z"><img src="(.+?)" border="1" width=120 height=90 /></a>').findall(html)
     for name, link, thumb in match:
         if not re.search('http://', thumb):
             thumb = main_url + thumb
         if not re.search('veetle', link):
-            addon.add_video_item({'mode': 'channel', 'url': shows_url + link}, {'title': name}, img=thumb)
+            addon.add_video_item({'mode': 'channel', 'url': link}, {'title': name}, img=thumb)
             	
     
 def mainmenu():
