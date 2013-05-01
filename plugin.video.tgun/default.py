@@ -258,12 +258,12 @@ def playerindex(embedcode):
 
 def get_embed(html):
     #embedtext = "(<object type=\"application/x-shockwave-flash\"|<!--[0-9]* start embed [0-9]*-->|<!-- BEGIN PLAYER CODE.+?-->|<!-- Begin PLAYER CODE.+?-->|<!--[ ]*START PLAYER CODE [&ac=270 kayakcon11]*-->|)(.+?)<!-- END PLAYER CODE [A-Za-z0-9]*-->"
-    embedtext = "-->(.+?)<!-- start Ad Code 2 -->"
+    embedtext = "</div>(.+?)<!-- start Ad Code 2 -->"
     #embedcode = re.search(embedtext, html, re.DOTALL).group(2)
     embedcode = re.search(embedtext, html, re.DOTALL).group(1)
     
     #Remove any commented out sources to we don't try to use them
-    #embedcode = re.sub('(?s)<!--.*?-->', '', embedcode).strip()
+    embedcode = re.sub('(?s)<!--.*?-->', '', embedcode).strip()
     return embedcode
 
 
