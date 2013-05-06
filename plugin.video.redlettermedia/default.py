@@ -1,6 +1,7 @@
 import xbmc, xbmcgui, xbmcaddon, xbmcplugin
 import urllib, urllib2
 import re
+import HTMLParser
 import urlresolver
 from t0mm0.common.addon import Addon
 from t0mm0.common.net import Net
@@ -42,7 +43,15 @@ def get_http_error(url):
         html = error.read()
     
     return html
-                           
+
+
+def get_url(url):
+    h = HTMLParser.HTMLParser() 
+    html = net.http_GET(MainUrl).content
+    html = h.unescape(html)
+    return html.encode('utf-8')
+     
+                      
 if play:
 
     #Check if url is youtube link first
@@ -117,7 +126,7 @@ if play:
 
 def mainpage_links():
     addon.add_directory({'mode': 'none'}, {'title': '[COLOR blue]Recent Updates[/COLOR]'}, is_folder=False, img='')
-    html = net.http_GET(MainUrl).content
+    html = get_url(url)
     entries = re.compile('<h2 class="post-title"><a href="(.+?)"[ rel="bookmark"]* title=".+?">(.+?)</a></h2>').findall(html)
     for link, title in entries:
         addon.add_video_item({'url': link},{'title':title})
