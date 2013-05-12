@@ -6,6 +6,10 @@
   - Fixed adding tv shows to favorites - removed New Episode tag from getting added
   - Added refresh tv show meta
   - Fixed error with movies/tv shows with special characters attempting to add context menu items
+  - Fixed more special character encoding on all pages
+  - Added TV Shows - All listing
+  - Added TV Shows - Upcoming New Episodes
+  - Removed Movies - Popular, section is no longer on the site
 
 [B]v1.0.2 (Thursday, 31 January 2013):[/B]
   - Fixed stupid bug when meta data is disabled
