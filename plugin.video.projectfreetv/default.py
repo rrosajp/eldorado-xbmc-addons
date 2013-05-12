@@ -3,7 +3,6 @@ import urllib
 import re, string
 from addon.common.addon import Addon
 from addon.common.net import Net
-import urlresolver
 from metahandler import metahandlers
 
 addon = Addon('plugin.video.projectfreetv', sys.argv)
@@ -79,20 +78,29 @@ meta_setting = str2bool(addon.get_setting('use-meta'))
 
 ######################################################################
 
-def Notify(typeq, title, message, times, line2='', line3=''):
-     if title == '':
-          title='PTV Notification'
+
+def get_html(page_url):
+    
+    html = net.http_GET(page_url).content
+    
+    import HTMLParser
+    h = HTMLParser.HTMLParser()
+    html = h.unescape(html)
+    return html.encode('utf-8')
+    
+    
+def Notify(typeq, box_title, message, times, line2='', line3=''):
+     if box_title == '':
+          box_title='PTV Notification'
      if typeq == 'small':
           if times == '':
                times='5000'
           smallicon= IconPath + 'icon.png'
-          xbmc.executebuiltin("XBMC.Notification("+title+","+message+","+times+","+smallicon+")")
+          addon.show_small_popup(title=box_title, msg=message, delay=int(times), image=smallicon)
      elif typeq == 'big':
-          dialog = xbmcgui.Dialog()
-          dialog.ok(' '+title+' ', ' '+message+' ', line2, line3)
+          addon.show_ok_dialog(message, title=box_title)
      else:
-          dialog = xbmcgui.Dialog()
-          dialog.ok(' '+title+' ', ' '+message+' ')
+          addon.show_ok_dialog(message, title=box_title)
 
 
 def setView(content, viewType):
@@ -282,8 +290,8 @@ def add_contextmenu(use_meta, video_type, link, vidtitle, vidname, favourite, wa
         else:
             watched_mark = 'Mark as Unwatched'
 
-        contextMenuItems.append((watched_mark, 'XBMC.RunPlugin(%s?mode=watch_mark&video_type=%s&title=%s&imdb_id=%s&season=%s&episode=%s)' % (sys.argv[0], video_type, vidtitle, imdb, season_num, episode_num)))
-        contextMenuItems.append(('Refresh Metadata', 'XBMC.RunPlugin(%s?mode=refresh_meta&video_type=%s&title=%s&year=%s&season=%s&episode=%s)' % (sys.argv[0], video_type, vidtitle, year, season_num, episode_num)))
+        contextMenuItems.append((watched_mark, 'XBMC.RunPlugin(%s?mode=watch_mark&video_type=%s&title=%s&imdb_id=%s&season=%s&episode=%s)' % (sys.argv[0], video_type, vidtitle.decode('utf-8'), imdb, season_num, episode_num)))
+        contextMenuItems.append(('Refresh Metadata', 'XBMC.RunPlugin(%s?mode=refresh_meta&video_type=%s&title=%s&year=%s&season=%s&episode=%s)' % (sys.argv[0], video_type, vidtitle.decode('utf-8'), year, season_num, episode_num)))
         
         #if video_type == VideoType_Movies:
             #contextMenuItems.append(('Search for trailer', 'XBMC.RunPlugin(%s?mode=trailer_search&vidname=%s&url=%s)' % (sys.argv[0], title, link)))                        
@@ -317,7 +325,7 @@ def add_video_item(video_type, section, link, vidtitle, vidname, metaget=None, y
         contextMenuItems = add_contextmenu(meta_setting, video_type, link, vidtitle, meta['title'], favourite, watched=meta['overlay'], imdb=meta['imdb_id'], year=meta['year'])
     else:
         contextMenuItems = add_contextmenu(meta_setting, video_type, link, vidtitle, meta['title'], favourite, watched=meta['overlay'], imdb=meta['imdb_id'], season_num=season_num, episode_num=episode_num)
-    
+
     if video_type == VideoType_Movies:
         addon.add_video_item({'url': link, 'video_type': video_type, 'section': section, 'title': vidtitle, 'name': vidname}, meta, contextmenu_items=contextMenuItems, context_replace=True, img=meta['cover_url'], fanart=meta['backdrop_url'], total_items=totalitems)
     elif video_type == VideoType_Episode:
@@ -344,7 +352,7 @@ def GetMovieList(url):
     else:
         metaget=None
 
-    html = net.http_GET(url).content
+    html = get_html(url)
     match = re.compile('<td width="97%" class="mnlcategorylist"><a href="(.+?)"><b>(.+?)[ (]*([0-9]{0,4})[)]*</b></a>(.+?)<').findall(html)
 
     for link, vidname, year, numlinks in match:
@@ -358,8 +366,10 @@ def GetMovieList(url):
 
 if play:
 
+    import urlresolver
+    
     sources = []
-    html = net.http_GET(url).content
+    html = get_html(url)
            
     if section == 'movies':
         
@@ -408,46 +418,49 @@ if play:
 
 
 if mode == 'main': 
+    setView(None, 'default-view')
     addon.add_directory({'mode': 'movies', 'section': 'movies'}, {'title':  'Movies'}, img=IconPath + 'Movies.png')
     addon.add_directory({'mode': 'tv', 'section': 'tv'}, {'title': 'TV Shows'})
     addon.add_directory({'mode': 'search', 'section': SearchAll}, {'title': 'Search All'})
     addon.add_directory({'mode': 'resolver_settings'}, {'title':  'Resolver Settings'}, is_folder=False, img=IconPath + 'Resolver_Settings.png')
-    setView(None, 'default-view')
+
 
 elif mode == 'movies':
-    addon.add_directory({'mode': 'moviesaz', 'section': 'moviesaz'}, {'title': 'A-Z'}, img=IconPath + "AZ.png")
+    setView(None, 'default-view')
     addon.add_directory({'mode': 'favourites', 'video_type': VideoType_Movies}, {'title': 'Favourites'})
-    addon.add_directory({'mode': 'search', 'section': SearchMovies}, {'title': 'Search'})
     addon.add_directory({'mode': 'movieslatest', 'section': 'movieslatest'}, {'title': 'Latest Added Links'})
+    addon.add_directory({'mode': 'search', 'section': SearchMovies}, {'title': 'Search'})
+    addon.add_directory({'mode': 'moviesaz', 'section': 'moviesaz'}, {'title': 'A-Z'}, img=IconPath + "AZ.png")
     addon.add_directory({'mode': 'moviesgenre', 'section': 'moviesgenre'}, {'title': 'Genre'}, img=IconPath + 'Genre.png')
     addon.add_directory({'mode': 'moviesyear', 'section': 'moviesyear'}, {'title': 'Year'})
-    setView(None, 'default-view')
+
 
 elif mode == 'moviesaz':
-    AZ_Menu('movieslist', MovieUrl + 'browse/')
     setView(None, 'default-view')
+    AZ_Menu('movieslist', MovieUrl + 'browse/')
 
 
 elif mode == 'moviesgenre':
+    setView(None, 'default-view')
     url = MovieUrl
-    html = net.http_GET(url).content
+    html = get_html(url)
     match = re.compile('<a class ="genre" href="/(.+?)"><b>(.+?)</b></a><b>').findall(html)
 
     # Add each link found as a directory item
     for link, genre in match:
         addon.add_directory({'mode': 'movieslist', 'url': MainUrl + link, 'section': 'movies'}, {'title': genre})
-    setView(None, 'default-view')
 
 
 elif mode == 'movieslatest':
 
+    setView('movies', 'movie-view')
     if meta_setting:
         metaget=metahandlers.MetaData()
     else:
         metaget=None
     latestlist = []
     url = MovieUrl
-    html = net.http_GET(url).content
+    html = get_html(url)
         
     match = re.compile('''<a onclick='visited.+?' href=".+?" target=.+?<div>(.+?)</div>''',re.DOTALL).findall(html)
     for vidname in match:
@@ -458,18 +471,17 @@ elif mode == 'movieslatest':
 
     for movie in latestlist:
         add_video_item(VideoType_Movies, 'latestmovies', url, movie, movie, metaget=metaget, totalitems=len(match))
-    setView('movies', 'movie-view')
 
 
 elif mode == 'moviesyear':
+    setView(None, 'default-view')
     url = MovieUrl
-    html = net.http_GET(url).content
+    html = get_html(url)
     match = re.compile('''<td width="97%" nowrap="true" class="mnlcategorylist"><a href="(.+?)"><b>(.+?)</b></a></td>''').findall(html)
 
     # Add each link found as a directory item
     for link, year in match:
        addon.add_directory({'mode': 'movieslist', 'url': url + urllib.quote(link), 'section': 'movies'}, {'title': year})
-    setView(None, 'default-view')
 
 
 elif mode == 'movieslist':
@@ -477,23 +489,27 @@ elif mode == 'movieslist':
 
 
 elif mode == 'tv':
-    addon.add_directory({'mode': 'tvaz', 'section': 'tvaz'}, {'title': 'A-Z'}, img=IconPath + "AZ.png")
-    addon.add_directory({'mode': 'tvpopular', 'section': 'tvpopular'}, {'title': 'Popular'})
-    #addon.add_directory({'mode': 'tvlatest', 'section': 'tvlatest'}, 'Latest')
+    setView(None, 'default-view')
     addon.add_directory({'mode': 'favourites', 'video_type': VideoType_TV}, {'title': 'Favourites'})
-    addon.add_directory({'mode': 'search', 'section': SearchTV}, {'title': 'Search'})    	
+    addon.add_directory({'mode': 'tvseries_upc', 'section': 'tvseries_upc'}, {'title': 'Upcoming Episodes'}, img='')
+    addon.add_directory({'mode': 'tvpopular', 'section': 'tvpopular'}, {'title': 'Popular'})
+    addon.add_directory({'mode': 'search', 'section': SearchTV}, {'title': 'Search'})
+    addon.add_directory({'mode': 'tvseries_all', 'section': 'tvseries_all'}, {'title': 'All'}, img='')
+    addon.add_directory({'mode': 'tvaz', 'section': 'tvaz'}, {'title': 'A-Z'}, img=IconPath + "AZ.png")
     addon.add_directory({'mode': 'tvlastadded', 'section': 'tv24hours', 'url': TVUrl + 'index_last.html'}, {'title': 'Last 24 Hours'})
     addon.add_directory({'mode': 'tvlastadded', 'section': 'tv3days', 'url': TVUrl + 'index_last_3_days.html'}, {'title': 'Last 3 Days'})
     addon.add_directory({'mode': 'tvlastadded', 'section': 'tv7days', 'url': TVUrl + 'index_last_7_days.html'}, {'title': 'Last 7 Days'})
     addon.add_directory({'mode': 'tvlastadded', 'section': 'tvmonth', 'url': TVUrl + 'index_last_30_days.html'}, {'title': 'This Month'})
     addon.add_directory({'mode': 'tvlastadded', 'section': 'tv90days', 'url': TVUrl + 'index_last_365_days.html'}, {'title': 'Last 90 Days'})
-    setView(None, 'default-view')
+
 
 elif mode == 'tvaz':
     AZ_Menu('tvseries-az',TVUrl)
     setView(None, 'default-view')
 
+
 elif mode == 'tvseries-az':
+    setView('tvshows', 'tvshow-view')
     url = TVUrl
     letter = addon.queries['letter']
     
@@ -502,7 +518,7 @@ elif mode == 'tvseries-az':
     else:
         metaget=None
         
-    html = net.http_GET(url).content
+    html = get_html(url)
     r = re.search('<a name="%s">(.+?)(<a name=|</table>)' % letter, html, re.DOTALL)
     
     if r:
@@ -512,17 +528,73 @@ elif mode == 'tvseries-az':
             if newep:
                 vidname = vidtitle + ' [COLOR red]New Episode![/COLOR]'
             add_video_directory('tvseasons', VideoType_TV, TVUrl + link, vidtitle, vidname, metaget=metaget, totalitems=len(match))
+
+
+elif mode == 'tvseries_all':
     setView('tvshows', 'tvshow-view')
+    if meta_setting:
+        metaget=metahandlers.MetaData()
+    else:
+        metaget=None
+
+    url = TVUrl
+    html = get_html(url)
+    
+    match = re.compile('class="mnlcategorylist"><a href="(.+?)"><b>(.+?)</b></a> (<sub>New Episode!</sub>|)</td>').findall(html)
+    for link, vidtitle, newep in match:
+        vidname = vidtitle
+        if newep:
+            vidname = vidtitle + ' [COLOR red]New Episode![/COLOR]'
+        add_video_directory('tvseasons', VideoType_TV, TVUrl + link, vidtitle, vidname, metaget=metaget, totalitems=len(match))
+
+
+elif mode == 'tvseries_upc':
+    setView('seasons', 'season-view')
+    if meta_setting:
+        metaget=metahandlers.MetaData()
+    else:
+        metaget=None
+
+    url = TVUrl
+    html = get_html(url)
+
+    html = re.search('<link rel="stylesheet" href="/resources/css/schedule1.css" type="text/css">(.+?)</table><script>', html, re.DOTALL)
+    if html:
+        today = False
+        sched_match = re.compile('<td class="(schedule [ today]*)" width="14%">[\r\n\t]*<span class="sheader">(.+?)</span>[\r\n\t]*<span class="sdate">(.+?)</span>(.+?)</td>', re.DOTALL).findall(html.group(1))
+        for schedule, day, date, episodes in sched_match:
+            
+            if schedule == 'schedule  today':
+                today = True
+                addon.add_directory({'mode': 'none'}, {'title': '[COLOR red] %s %s[/COLOR]' % (day.strip(), date.strip())}, is_folder=False, img='')
+            elif not schedule == 'schedule  today' and today:
+                addon.add_directory({'mode': 'none'}, {'title': '[COLOR blue] %s %s[/COLOR]' % (day.strip(), date.strip())}, is_folder=False, img='')
+            
+            if today:
+                ep_match = re.compile('<a href=\'/(.+?)\' title="(.+? S([0-9]+)E([0-9]+) .+?)" class=\'epp\'>(.+?)</a>').findall(episodes)
+                for link, vidname, season_num, episode_num, vidtitle in ep_match:
+    
+                    #Since we are getting season level items, try to grab the imdb_id of the TV Show first to make meta get easier
+                    if meta_setting:
+                        meta = get_metadata(VideoType_TV, vidtitle, metaget=metaget)
+                        imdb = meta['imdb_id']
+                    else:
+                        imdb = ''
+                    
+                    #They give a link to the show, but not the correct season, let's fix that
+                    new_url = MainUrl + link + 'season_' + str(int(season_num)) + '.html'
+                    add_video_directory('tvepisodes', VideoType_Season, new_url, vidtitle, vidname, metaget=metaget, imdb=imdb, season_num=season_num, totalitems=(len(sched_match) * len(ep_match)))
 
 
 elif mode == 'tvlastadded':
-    
+
+    setView('seasons', 'season-view')    
     if meta_setting:
         metaget=metahandlers.MetaData()
     else:
         metaget=None
         
-    html = net.http_GET(url).content
+    html = get_html(url)
     full_match = re.compile('class="mnlcategorylist"><a href="(.+?)#.+?"><b>((.+?) - Season ([0-9]+) Episode ([0-9]+)) <').findall(html)
     match = re.compile('<a name="(.+?)"></a>(.+?)(<td colspan="2">|</table>)', re.DOTALL).findall(html)
     for added_date, inside_html, endtag in match:
@@ -538,34 +610,33 @@ elif mode == 'tvlastadded':
                 imdb = ''
 
             add_video_directory('tvepisodes', VideoType_Season, TVUrl + link, vidtitle, vidname, metaget=metaget, imdb=imdb, season_num=season_num, totalitems=len(full_match))
-    setView('seasons', 'season-view')
 
 
 elif mode == 'tvpopular':
-    
+
+    setView('tvshows', 'tvshow-view')    
     if meta_setting:
         metaget=metahandlers.MetaData()
     else:
         metaget=None
         
     url = MainUrl
-    html = net.http_GET(url).content
+    html = get_html(url)
     match = re.compile('<td class="tleft".*?><a href="(.+?)/">(.+?)</a></td>').findall(html)
     for link, vidname in match:
         is_tv = re.search('/internet/', link)
         if vidname != "...more" and is_tv:
             add_video_directory('tvseasons', VideoType_TV, link, vidname, vidname, metaget=metaget, totalitems=len(match))
-    setView('tvshows', 'tvshow-view')
 
 
 elif mode == 'tvseasons':
-
+    setView('seasons', 'season-view')
     if meta_setting:
         metaget=metahandlers.MetaData()
     else:
         metaget=None
         
-    html = net.http_GET(url).content
+    html = get_html(url)
     match = re.compile('class="mnlcategorylist"><a href="(.+?)"><b>(.+?)</b></a>(.+?)<').findall(html)
     seasons = re.compile('class="mnlcategorylist"><a href=".+?"><b>Season ([0-9]+)</b></a>.+?<').findall(html)
     #seasons = list(xrange(len(match)))
@@ -594,17 +665,18 @@ elif mode == 'tvseasons':
         contextMenuItems = add_contextmenu(meta_setting, video_type, link, title, meta['title'], favourite=False, watched=meta['overlay'], imdb=meta['imdb_id'], season_num=seasons[num])
         addon.add_directory({'mode': 'tvepisodes', 'url': link, 'video_type': VideoType_Season, 'imdb_id': meta['imdb_id'], 'title': title, 'name': meta['title'], 'season': seasons[num]}, meta, contextmenu_items=contextMenuItems, context_replace=True, img=meta['cover_url'], fanart=meta['backdrop_url'], total_items=len(match))
         num = num + 1
-    setView('seasons', 'season-view')
 
 
 elif mode == 'tvepisodes':
+    setView('episodes', 'episode-view')
     if meta_setting:
         metaget=metahandlers.MetaData()
     else:
         metaget=None
         
-    html = net.http_GET(url).content.encode('utf-8')
-    match = re.compile('<td class="episode"><a name=".+?"></a>(.*?)<b>(.+?)</b></td>[\r\n\t]*(<td align="right".+?;Air Date: (.*?)</div>)*', re.DOTALL).findall(html)
+    html = get_html(url)
+
+    match = re.compile('<td class="episode"><a name=".+?"></a>(.*?)<b>(.+?)</b></td>[\r\n\t]*(<td align="right".+?Air Date: (.*?)</div>)*', re.DOTALL).findall(html)
     for next_episode, vidname, empty, next_air in match:
         episode_num = re.search('([0-9]{0,2})\.', vidname)
         if episode_num:
@@ -618,11 +690,11 @@ elif mode == 'tvepisodes':
             if next_air: 
                 meta['title'] = '[COLOR blue]Next Episode: %s - %s[/COLOR]' % (next_air, vidname)
             addon.add_directory({'mode': 'none'}, meta, is_folder=False, img=meta['cover_url'], fanart=meta['backdrop_url'])            
-    setView('episodes', 'episode-view')
 
 
 elif mode == 'search':
 
+    setView(None, 'default-view')
     if meta_setting:
         metaget=metahandlers.MetaData()
     else:
@@ -673,7 +745,7 @@ elif mode == 'search':
 
         search_quoted = urllib.quote(search_text)
         url = SearchUrl % (search_quoted, section)
-        html = net.http_GET(url).content    
+        html = get_html(url)
         
         match = re.compile('<td width="97%" class="mnlcategorylist">[\r\n\t]*<a href="(.+?)">[\r\n\t]*<b>(.+?)[ (]*([0-9]{0,4})[)]*</b>').findall(html)
         if match:
@@ -685,11 +757,10 @@ elif mode == 'search':
                     add_video_directory('tvseasons', VideoType_TV, link, vidname, vidname, metaget=metaget, year=year, totalitems=len(match))
         else:
             Notify('small', 'No Results', 'No search results found','')
-    setView(None, 'default-view')
 
 
 elif mode == 'favourites':
-    
+    setView(video_type +'s', video_type + '-view')
     if meta_setting:
         metaget=metahandlers.MetaData()
     else:
@@ -741,6 +812,7 @@ elif mode == 'watch_mark':
 
 
 elif mode == 'resolver_settings':
+    import urlresolver
     urlresolver.display_settings()
 
 
