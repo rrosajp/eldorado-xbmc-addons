@@ -1,3 +1,6 @@
+[B]v0.0.33 (Saturday, 11 May 2013):[/B]
+  - Added pageUrl to TGUN owned streams to get working again
+  
 [B]v0.0.32 (Wednesday, 01 May 2013):[/B]
   - Small fix to get some additional streams working
   
