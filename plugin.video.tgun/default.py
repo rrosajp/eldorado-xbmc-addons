@@ -294,7 +294,11 @@ if play:
     par = urlparse(url).query
       
     html = net.http_GET(url).content
-    embedcode = get_embed(html)
+    #embedcode = get_embed(html)
+    
+    #Remove any commented out sources to we don't try to use them
+    embedcode = re.sub('(?s)<!--.*?-->', '', html).strip()
+    html = re.sub('(?s)<!--.*?-->', '', html).strip()
 
     if re.search('playerindex.php', html):
         #channel = urllib2.unquote(re.search('src="playerindex.php\?(.+?)"', embedcode).group(1))
@@ -311,37 +315,43 @@ if play:
     if not stream_url:
         #If can't find anything lets do a quick check for escaped html for hidden links
         if not embedcode or re.search('document.write\(unescape', html):
-            escaped = re.findall('document.write\(unescape\(\'(.+?)\'\)\);', html)
-            if escaped:
-                for escape in escaped:
-                    embedcode = urllib2.unquote(urllib2.unquote(escape))
-                    if re.search('streamer', embedcode):
-                        stream = re.search('streamer=(.+?)&file=(.+?)&skin=.+?src="(.+?)"', embedcode)
-                        
-                        if stream:
-                            if '+' in stream.group(2):
-                                playpath = par
-                            else:
-                                playpath = stream.group(2)
-                            stream_url = stream.group(1) + ' playpath=' + playpath + ' swfUrl=http://www.tgun.tv' + stream.group(3) + ' pageUrl=' + url + ' live=true'                        
+            escaped = re.search('document.write\(unescape\(\'(.+?)\'\)\);', html)
+            escaped2 = re.search('<script type="text/javascript">var embed="";embed=embed\+\'<object width="640" height="466" id="dplayer"(.+?)</script>', html)
+            if escaped or escaped2:
+                if escaped:
+                    embedcode = urllib2.unquote(urllib2.unquote(escaped.group(1)))
+                else:
+                    embedcode = urllib2.unquote(urllib2.unquote(escaped2.group(1)))
+                embedcode = urllib2.unquote(urllib2.unquote(embedcode))
+                print embedcode
+                if re.search('streamer', embedcode):
+                    stream = re.search('streamer=(.+?)&file=(.+?)&skin=.+?src="(.+?)"', embedcode)
+                    print 'BING!!'
+                    if stream:
+                        print 'BOING!!!'
+                        if '+' in stream.group(2):
+                            playpath = par
                         else:
-                            swfPlayer = re.search('SWFObject\(\'(.+?)\'', embedcode).group(1)
-                            streamer = re.search('\'streamer\',\'(.+?)\'', embedcode).group(1)
-                            playPath = channel
-                            stream_url = ''.join([streamer,
-                                           ' playpath=', playPath,
-                                           ' pageURL=', url,
-                                           ' swfUrl=', 'http://www.tgun.tv' + swfPlayer,
-                                           ' live=true'])
-                        print stream_url
-                    elif re.search('http://tgun.tv/embed', embedcode):
-                        link = re.search('src="(.+?)"', html)
-                        if link:
-                            html = net.http_GET(link.group(1)).content
-                            html = re.sub('(?s)<!--.*?-->', '', html).strip()
-                            stream_url = determine_stream(html, link.group(1))
-                        else:
-                            stream_url = None
+                            playpath = stream.group(2)
+                        stream_url = stream.group(1) + ' playpath=' + playpath + ' swfUrl=http://www.tgun.tv' + stream.group(3) + ' pageUrl=' + url + ' live=true'                        
+                    else:
+                        swfPlayer = re.search('SWFObject\(\'(.+?)\'', embedcode).group(1)
+                        streamer = re.search('\'streamer\',\'(.+?)\'', embedcode).group(1)
+                        playPath = channel
+                        stream_url = ''.join([streamer,
+                                       ' playpath=', playPath,
+                                       ' pageURL=', url,
+                                       ' swfUrl=', 'http://www.tgun.tv' + swfPlayer,
+                                       ' live=true'])
+                    print stream_url
+                elif re.search('http://tgun.tv/embed', embedcode):
+                    link = re.search('src="(.+?)"', html)
+                    if link:
+                        html = net.http_GET(link.group(1)).content
+                        html = re.sub('(?s)<!--.*?-->', '', html).strip()
+                        stream_url = determine_stream(html, link.group(1))
+                    else:
+                        stream_url = None
         else:
             Notify('small','Undefined Stream', 'Channel is using an unknown stream type','')
             stream_url = None
