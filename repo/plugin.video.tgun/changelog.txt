@@ -1,3 +1,6 @@
+[B]v0.0.34 (Saturday, 01 June 2013):[/B]
+  - Quick patch to fix html pages
+  
 [B]v0.0.33 (Saturday, 11 May 2013):[/B]
   - Added pageUrl to TGUN owned streams to get working again
   
