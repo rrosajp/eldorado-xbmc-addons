@@ -1,12 +1,23 @@
 import xbmc, xbmcgui, xbmcplugin
 import urllib
 import re, string
-from addon.common.addon import Addon
-from addon.common.net import Net
-from metahandler import metahandlers
+
+try:
+    from addon.common.addon import Addon
+    from addon.common.net import Net
+except:
+    print 'Failed to import script.module.addon.common'
+    xbmcgui.Dialog().ok("PFTV Import Failure", "Failed to import addon.common", "A component needed by PFTV is missing on your system", "Please visit www.xbmchub.com for support")
 
 addon = Addon('plugin.video.projectfreetv', sys.argv)
 net = Net()
+
+try:
+    from metahandler import metahandlers
+except:
+    print 'Failed to import script.module.metahandler'
+    xbmcgui.Dialog().ok("PFTV Import Failure", "Failed to import Metahandlers", "A component needed by PFTV is missing on your system", "Please visit www.xbmchub.com for support")
+
 
 #Common Cache
 import xbmcvfs
@@ -78,7 +89,9 @@ meta_setting = str2bool(addon.get_setting('use-meta'))
 
 ######################################################################
 
-
+def icon_path(filename):
+    return IconPath + filename
+    
 def get_html(page_url):
     
     html = net.http_GET(page_url).content
@@ -89,13 +102,13 @@ def get_html(page_url):
     return html.encode('utf-8')
     
     
-def Notify(typeq, box_title, message, times, line2='', line3=''):
+def Notify(typeq, box_title, message, times='', line2='', line3=''):
      if box_title == '':
           box_title='PTV Notification'
      if typeq == 'small':
           if times == '':
                times='5000'
-          smallicon= IconPath + 'icon.png'
+          smallicon= icon_path('icon.png')
           addon.show_small_popup(title=box_title, msg=message, delay=int(times), image=smallicon)
      elif typeq == 'big':
           addon.show_ok_dialog(message, title=box_title)
@@ -136,12 +149,12 @@ def add_favourite():
         favs = eval(saved_favs)
         if favs:
             if (title, vidname, imdb_id, season, episode, url) in favs:
-                Notify('small', 'Favourite Already Exists', vidname.title() + ' already exists in your PTV favourites','')
+                Notify('small', 'Favourite Already Exists', vidname.title() + ' already exists in your PFTV favourites','')
                 return
 
     favs.append((title, vidname, imdb_id, season, episode, url))
     cache.set('favourites_' + video_type, str(favs))
-    Notify('small', 'Added to favourites', vidname.title() + ' added to your PTV favourites','')
+    Notify('small', 'Added to favourites', vidname.title() + ' added to your PFTV favourites','')
 
 
 def remove_favourite():
@@ -279,9 +292,9 @@ def add_contextmenu(use_meta, video_type, link, vidtitle, vidname, favourite, wa
 
     #Check if we are listing items in the Favourites list
     if favourite:
-        contextMenuItems.append(('Delete from Favourites', 'XBMC.RunPlugin(%s)' % addon.build_plugin_url({'mode': 'del_fav', 'video_type': video_type, 'title': vidtitle, 'name':vidname, 'url':link, 'imdb_id':imdb, 'season': season_num, 'episode': episode_num})))
+        contextMenuItems.append(('Delete from PFTV Favourites', 'XBMC.RunPlugin(%s)' % addon.build_plugin_url({'mode': 'del_fav', 'video_type': video_type, 'title': vidtitle, 'name':vidname, 'url':link, 'imdb_id':imdb, 'season': season_num, 'episode': episode_num})))
     else:
-        contextMenuItems.append(('Add to Favourites', 'XBMC.RunPlugin(%s)' % addon.build_plugin_url({'mode': 'add_fav', 'video_type': video_type, 'title': vidtitle, 'name':vidname, 'url':link, 'imdb_id':imdb, 'season': season_num, 'episode': episode_num})))
+        contextMenuItems.append(('Add to PFTV Favourites', 'XBMC.RunPlugin(%s)' % addon.build_plugin_url({'mode': 'add_fav', 'video_type': video_type, 'title': vidtitle, 'name':vidname, 'url':link, 'imdb_id':imdb, 'season': season_num, 'episode': episode_num})))
 
     #Meta is turned on so enable extra context menu options
     if use_meta:
@@ -337,11 +350,11 @@ def AZ_Menu(type, url):
      
     addon.add_directory({'mode': type, 
                          'url': url + 'numeric.html', 'letter': '#'},{'title': '#'},
-                         img=IconPath + "numeric.png")
+                         img=icon_path("0.png"))
     for l in string.uppercase:
         addon.add_directory({'mode': type, 
                              'url': url + str(l.lower()) + '.html', 'letter': l}, {'title': l},
-                             img=IconPath + l + ".png")
+                             img=icon_path(l + ".png"))
 
 
 # Get List of Movies from given URL
@@ -366,7 +379,11 @@ def GetMovieList(url):
 
 if play:
 
-    import urlresolver
+    try:
+        import urlresolver
+    except:
+        addon.log_error("Failed to import script.module.urlresolver")
+        xbmcgui.Dialog().ok("PFTV Import Failure", "Failed to import URLResolver", "A component needed by PFTV is missing on your system", "Please visit www.xbmchub.com for support")
     
     sources = []
     html = get_html(url)
@@ -418,30 +435,29 @@ if play:
 
 
 if mode == 'main': 
+    addon.add_directory({'mode': 'movies', 'section': 'movies'}, {'title':  'Movies'}, img=icon_path('Movies.png'))
+    addon.add_directory({'mode': 'tv', 'section': 'tv'}, {'title': 'TV Shows'}, img=icon_path('TV_Shows.png'))
+    addon.add_directory({'mode': 'search', 'section': SearchAll}, {'title': 'Search All'}, img=icon_path('Search.png'))
+    addon.add_directory({'mode': 'resolver_settings'}, {'title':  'Resolver Settings'}, is_folder=False, img=icon_path('Settings.png'))
     setView(None, 'default-view')
-    addon.add_directory({'mode': 'movies', 'section': 'movies'}, {'title':  'Movies'}, img=IconPath + 'Movies.png')
-    addon.add_directory({'mode': 'tv', 'section': 'tv'}, {'title': 'TV Shows'})
-    addon.add_directory({'mode': 'search', 'section': SearchAll}, {'title': 'Search All'})
-    addon.add_directory({'mode': 'resolver_settings'}, {'title':  'Resolver Settings'}, is_folder=False, img=IconPath + 'Resolver_Settings.png')
 
 
 elif mode == 'movies':
+    addon.add_directory({'mode': 'favourites', 'video_type': VideoType_Movies}, {'title': 'Favourites'}, img=icon_path("Favourites.png"))
+    addon.add_directory({'mode': 'movieslatest', 'section': 'movieslatest'}, {'title': 'Latest Added Links'}, img=icon_path("Latest_Added.png"))
+    addon.add_directory({'mode': 'search', 'section': SearchMovies}, {'title': 'Search'}, img=icon_path('Search.png'))
+    addon.add_directory({'mode': 'moviesaz', 'section': 'moviesaz'}, {'title': 'A-Z'}, img=icon_path("AZ.png"))
+    addon.add_directory({'mode': 'moviesgenre', 'section': 'moviesgenre'}, {'title': 'Genre'}, img=icon_path('Genre.png'))
+    addon.add_directory({'mode': 'moviesyear', 'section': 'moviesyear'}, {'title': 'Year'}, img=icon_path('Year.png'))
     setView(None, 'default-view')
-    addon.add_directory({'mode': 'favourites', 'video_type': VideoType_Movies}, {'title': 'Favourites'})
-    addon.add_directory({'mode': 'movieslatest', 'section': 'movieslatest'}, {'title': 'Latest Added Links'})
-    addon.add_directory({'mode': 'search', 'section': SearchMovies}, {'title': 'Search'})
-    addon.add_directory({'mode': 'moviesaz', 'section': 'moviesaz'}, {'title': 'A-Z'}, img=IconPath + "AZ.png")
-    addon.add_directory({'mode': 'moviesgenre', 'section': 'moviesgenre'}, {'title': 'Genre'}, img=IconPath + 'Genre.png')
-    addon.add_directory({'mode': 'moviesyear', 'section': 'moviesyear'}, {'title': 'Year'})
 
 
 elif mode == 'moviesaz':
-    setView(None, 'default-view')
     AZ_Menu('movieslist', MovieUrl + 'browse/')
+    setView(None, 'default-view')
 
 
 elif mode == 'moviesgenre':
-    setView(None, 'default-view')
     url = MovieUrl
     html = get_html(url)
     match = re.compile('<a class ="genre" href="/(.+?)"><b>(.+?)</b></a><b>').findall(html)
@@ -449,11 +465,11 @@ elif mode == 'moviesgenre':
     # Add each link found as a directory item
     for link, genre in match:
         addon.add_directory({'mode': 'movieslist', 'url': MainUrl + link, 'section': 'movies'}, {'title': genre})
+    setView(None, 'default-view')
 
 
 elif mode == 'movieslatest':
 
-    setView('movies', 'movie-view')
     if meta_setting:
         metaget=metahandlers.MetaData()
     else:
@@ -471,10 +487,10 @@ elif mode == 'movieslatest':
 
     for movie in latestlist:
         add_video_item(VideoType_Movies, 'latestmovies', url, movie, movie, metaget=metaget, totalitems=len(match))
+    setView('movies', 'movie-view')
 
 
 elif mode == 'moviesyear':
-    setView(None, 'default-view')
     url = MovieUrl
     html = get_html(url)
     match = re.compile('''<td width="97%" nowrap="true" class="mnlcategorylist"><a href="(.+?)"><b>(.+?)</b></a></td>''').findall(html)
@@ -482,6 +498,7 @@ elif mode == 'moviesyear':
     # Add each link found as a directory item
     for link, year in match:
        addon.add_directory({'mode': 'movieslist', 'url': url + urllib.quote(link), 'section': 'movies'}, {'title': year})
+    setView(None, 'default-view')
 
 
 elif mode == 'movieslist':
@@ -489,18 +506,18 @@ elif mode == 'movieslist':
 
 
 elif mode == 'tv':
+    addon.add_directory({'mode': 'favourites', 'video_type': VideoType_TV}, {'title': 'Favourites'}, img=icon_path("Favourites.png"))
+    addon.add_directory({'mode': 'tvseries_upc', 'section': 'tvseries_upc'}, {'title': 'Upcoming Episodes'}, img=icon_path('Upcoming.png'))
+    addon.add_directory({'mode': 'tvpopular', 'section': 'tvpopular'}, {'title': 'Popular'}, img=icon_path('Popular.png'))
+    addon.add_directory({'mode': 'search', 'section': SearchTV}, {'title': 'Search'}, img=icon_path('Search.png'))
+    addon.add_directory({'mode': 'tvseries_all', 'section': 'tvseries_all'}, {'title': 'All'}, img=icon_path('All_Shows.png'))
+    addon.add_directory({'mode': 'tvaz', 'section': 'tvaz'}, {'title': 'A-Z'}, img=icon_path("AZ.png"))
+    addon.add_directory({'mode': 'tvlastadded', 'section': 'tv24hours', 'url': TVUrl + 'index_last.html'}, {'title': 'Last 24 Hours'}, img=icon_path('Last_24_Hours.png'))
+    addon.add_directory({'mode': 'tvlastadded', 'section': 'tv3days', 'url': TVUrl + 'index_last_3_days.html'}, {'title': 'Last 3 Days'}, img=icon_path('Last_3_Days.png'))
+    addon.add_directory({'mode': 'tvlastadded', 'section': 'tv7days', 'url': TVUrl + 'index_last_7_days.html'}, {'title': 'Last 7 Days'}, img=icon_path('Last_7_Days.png'))
+    addon.add_directory({'mode': 'tvlastadded', 'section': 'tvmonth', 'url': TVUrl + 'index_last_30_days.html'}, {'title': 'This Month'}, img=icon_path('This_Month.png'))
+    addon.add_directory({'mode': 'tvlastadded', 'section': 'tv90days', 'url': TVUrl + 'index_last_365_days.html'}, {'title': 'Last 90 Days'}, img=icon_path('Last_90_Days.png'))
     setView(None, 'default-view')
-    addon.add_directory({'mode': 'favourites', 'video_type': VideoType_TV}, {'title': 'Favourites'})
-    addon.add_directory({'mode': 'tvseries_upc', 'section': 'tvseries_upc'}, {'title': 'Upcoming Episodes'}, img='')
-    addon.add_directory({'mode': 'tvpopular', 'section': 'tvpopular'}, {'title': 'Popular'})
-    addon.add_directory({'mode': 'search', 'section': SearchTV}, {'title': 'Search'})
-    addon.add_directory({'mode': 'tvseries_all', 'section': 'tvseries_all'}, {'title': 'All'}, img='')
-    addon.add_directory({'mode': 'tvaz', 'section': 'tvaz'}, {'title': 'A-Z'}, img=IconPath + "AZ.png")
-    addon.add_directory({'mode': 'tvlastadded', 'section': 'tv24hours', 'url': TVUrl + 'index_last.html'}, {'title': 'Last 24 Hours'})
-    addon.add_directory({'mode': 'tvlastadded', 'section': 'tv3days', 'url': TVUrl + 'index_last_3_days.html'}, {'title': 'Last 3 Days'})
-    addon.add_directory({'mode': 'tvlastadded', 'section': 'tv7days', 'url': TVUrl + 'index_last_7_days.html'}, {'title': 'Last 7 Days'})
-    addon.add_directory({'mode': 'tvlastadded', 'section': 'tvmonth', 'url': TVUrl + 'index_last_30_days.html'}, {'title': 'This Month'})
-    addon.add_directory({'mode': 'tvlastadded', 'section': 'tv90days', 'url': TVUrl + 'index_last_365_days.html'}, {'title': 'Last 90 Days'})
 
 
 elif mode == 'tvaz':
@@ -509,7 +526,6 @@ elif mode == 'tvaz':
 
 
 elif mode == 'tvseries-az':
-    setView('tvshows', 'tvshow-view')
     url = TVUrl
     letter = addon.queries['letter']
     
@@ -528,10 +544,10 @@ elif mode == 'tvseries-az':
             if newep:
                 vidname = vidtitle + ' [COLOR red]New Episode![/COLOR]'
             add_video_directory('tvseasons', VideoType_TV, TVUrl + link, vidtitle, vidname, metaget=metaget, totalitems=len(match))
+    setView('tvshows', 'tvshow-view')
 
 
 elif mode == 'tvseries_all':
-    setView('tvshows', 'tvshow-view')
     if meta_setting:
         metaget=metahandlers.MetaData()
     else:
@@ -546,10 +562,10 @@ elif mode == 'tvseries_all':
         if newep:
             vidname = vidtitle + ' [COLOR red]New Episode![/COLOR]'
         add_video_directory('tvseasons', VideoType_TV, TVUrl + link, vidtitle, vidname, metaget=metaget, totalitems=len(match))
+    setView('tvshows', 'tvshow-view')
 
 
 elif mode == 'tvseries_upc':
-    setView('seasons', 'season-view')
     if meta_setting:
         metaget=metahandlers.MetaData()
     else:
@@ -584,11 +600,11 @@ elif mode == 'tvseries_upc':
                     #They give a link to the show, but not the correct season, let's fix that
                     new_url = MainUrl + link + 'season_' + str(int(season_num)) + '.html'
                     add_video_directory('tvepisodes', VideoType_Season, new_url, vidtitle, vidname, metaget=metaget, imdb=imdb, season_num=season_num, totalitems=(len(sched_match) * len(ep_match)))
+    setView('seasons', 'season-view')
 
 
 elif mode == 'tvlastadded':
 
-    setView('seasons', 'season-view')    
     if meta_setting:
         metaget=metahandlers.MetaData()
     else:
@@ -610,11 +626,11 @@ elif mode == 'tvlastadded':
                 imdb = ''
 
             add_video_directory('tvepisodes', VideoType_Season, TVUrl + link, vidtitle, vidname, metaget=metaget, imdb=imdb, season_num=season_num, totalitems=len(full_match))
+    setView('seasons', 'season-view')    
 
 
 elif mode == 'tvpopular':
 
-    setView('tvshows', 'tvshow-view')    
     if meta_setting:
         metaget=metahandlers.MetaData()
     else:
@@ -627,10 +643,10 @@ elif mode == 'tvpopular':
         is_tv = re.search('/internet/', link)
         if vidname != "...more" and is_tv:
             add_video_directory('tvseasons', VideoType_TV, link, vidname, vidname, metaget=metaget, totalitems=len(match))
+    setView('tvshows', 'tvshow-view')    
 
 
 elif mode == 'tvseasons':
-    setView('seasons', 'season-view')
     if meta_setting:
         metaget=metahandlers.MetaData()
     else:
@@ -665,10 +681,10 @@ elif mode == 'tvseasons':
         contextMenuItems = add_contextmenu(meta_setting, video_type, link, title, meta['title'], favourite=False, watched=meta['overlay'], imdb=meta['imdb_id'], season_num=seasons[num])
         addon.add_directory({'mode': 'tvepisodes', 'url': link, 'video_type': VideoType_Season, 'imdb_id': meta['imdb_id'], 'title': title, 'name': meta['title'], 'season': seasons[num]}, meta, contextmenu_items=contextMenuItems, context_replace=True, img=meta['cover_url'], fanart=meta['backdrop_url'], total_items=len(match))
         num = num + 1
+    setView('seasons', 'season-view')
 
 
 elif mode == 'tvepisodes':
-    setView('episodes', 'episode-view')
     if meta_setting:
         metaget=metahandlers.MetaData()
     else:
@@ -690,11 +706,11 @@ elif mode == 'tvepisodes':
             if next_air: 
                 meta['title'] = '[COLOR blue]Next Episode: %s - %s[/COLOR]' % (next_air, vidname)
             addon.add_directory({'mode': 'none'}, meta, is_folder=False, img=meta['cover_url'], fanart=meta['backdrop_url'])            
+    setView('episodes', 'episode-view')
 
 
 elif mode == 'search':
 
-    setView(None, 'default-view')
     if meta_setting:
         metaget=metahandlers.MetaData()
     else:
@@ -741,6 +757,12 @@ elif mode == 'search':
         #Add to our search history only if it doesn't already exist
         if search_text not in search_list:
             search_list.insert(0, search_text)
+            
+            #Lets keep just 10 search history items at a time
+            if len(search_list) > 10:
+                del search_list[10]
+            
+            #Write the list back to cache
             cache.set('search_' + section, str(search_list))
 
         search_quoted = urllib.quote(search_text)
@@ -757,10 +779,10 @@ elif mode == 'search':
                     add_video_directory('tvseasons', VideoType_TV, link, vidname, vidname, metaget=metaget, year=year, totalitems=len(match))
         else:
             Notify('small', 'No Results', 'No search results found','')
+    setView(None, 'default-view')
 
 
 elif mode == 'favourites':
-    setView(video_type +'s', video_type + '-view')
     if meta_setting:
         metaget=metahandlers.MetaData()
     else:
@@ -777,11 +799,11 @@ elif mode == 'favourites':
         favs = sorted(eval(saved_favs), key=lambda fav: fav[1])
         for fav in favs:
             if video_type in (VideoType_Movies, VideoType_Episode):
-                add_video_item(video_type, video_type, fav[5], fav[0].title(), fav[1].title(), metaget=metaget, imdb=fav[2], season_num=fav[3], episode_num=fav[4], totalitems=len(favs), favourite=True)
+                add_video_item(video_type, video_type, fav[5], fav[0], fav[1], metaget=metaget, imdb=fav[2], season_num=fav[3], episode_num=fav[4], totalitems=len(favs), favourite=True)
             elif video_type == VideoType_TV:
-                add_video_directory('tvseasons', video_type, fav[5], fav[0].title(), fav[1].title(), metaget=metaget, imdb=fav[2], season_num=fav[3], totalitems=len(favs), favourite=True)
+                add_video_directory('tvseasons', video_type, fav[5], fav[0], fav[1], metaget=metaget, imdb=fav[2], season_num=fav[3], totalitems=len(favs), favourite=True)
             elif video_type == VideoType_Season:
-                add_video_directory('tvepisodes', video_type, fav[5], fav[0].title(), fav[1].title(), metaget=metaget, imdb=fav[2], season_num=fav[3], totalitems=len(favs), favourite=True)
+                add_video_directory('tvepisodes', video_type, fav[5], fav[0], fav[1], metaget=metaget, imdb=fav[2], season_num=fav[3], totalitems=len(favs), favourite=True)
     setView(video_type +'s', video_type + '-view')
 
 
@@ -814,6 +836,29 @@ elif mode == 'watch_mark':
 elif mode == 'resolver_settings':
     import urlresolver
     urlresolver.display_settings()
+
+
+elif mode=='meta_settings':
+        print "Metahandler Settings"
+        import metahandler
+        metahandler.display_settings()
+
+
+elif mode=='delete_favs':
+        
+        dialog = xbmcgui.Dialog()
+        ret = dialog.yesno('Delete Favourites', 'Do you wish to delete %s PFTV Favourites?' % video_type.upper(), '','This cannot be undone!')        
+
+        if ret == True:
+            addon.log("Deleting favourites: %s" % video_type)
+            if video_type == 'all':
+                cache.delete('favourites_%s' % VideoType_Movies)
+                cache.delete('favourites_%s' % VideoType_TV)
+                cache.delete('favourites_%s' % VideoType_Season)
+                cache.delete('favourites_%s' % VideoType_Episode)
+            else:
+                cache.delete('favourites_%s' % video_type)
+            Notify('small', 'PFTV Favourites', 'PFTV %s Favourites Deleted' % video_type.title())
 
 
 if not play:
