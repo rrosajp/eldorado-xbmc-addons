@@ -445,10 +445,10 @@ if mode == 'main':
 elif mode == 'movies':
     addon.add_directory({'mode': 'favourites', 'video_type': VideoType_Movies}, {'title': 'Favourites'}, img=icon_path("Favourites.png"))
     addon.add_directory({'mode': 'movieslatest', 'section': 'movieslatest'}, {'title': 'Latest Added Links'}, img=icon_path("Latest_Added.png"))
-    addon.add_directory({'mode': 'search', 'section': SearchMovies}, {'title': 'Search'}, img=icon_path('Search.png'))
     addon.add_directory({'mode': 'moviesaz', 'section': 'moviesaz'}, {'title': 'A-Z'}, img=icon_path("AZ.png"))
     addon.add_directory({'mode': 'moviesgenre', 'section': 'moviesgenre'}, {'title': 'Genre'}, img=icon_path('Genre.png'))
     addon.add_directory({'mode': 'moviesyear', 'section': 'moviesyear'}, {'title': 'Year'}, img=icon_path('Year.png'))
+    addon.add_directory({'mode': 'search', 'section': SearchMovies}, {'title': 'Search'}, img=icon_path('Search.png'))
     setView(None, 'default-view')
 
 
@@ -508,15 +508,15 @@ elif mode == 'movieslist':
 elif mode == 'tv':
     addon.add_directory({'mode': 'favourites', 'video_type': VideoType_TV}, {'title': 'Favourites'}, img=icon_path("Favourites.png"))
     addon.add_directory({'mode': 'tvseries_upc', 'section': 'tvseries_upc'}, {'title': 'Upcoming Episodes'}, img=icon_path('Upcoming.png'))
-    addon.add_directory({'mode': 'tvpopular', 'section': 'tvpopular'}, {'title': 'Popular'}, img=icon_path('Popular.png'))
-    addon.add_directory({'mode': 'search', 'section': SearchTV}, {'title': 'Search'}, img=icon_path('Search.png'))
-    addon.add_directory({'mode': 'tvseries_all', 'section': 'tvseries_all'}, {'title': 'All'}, img=icon_path('All_Shows.png'))
-    addon.add_directory({'mode': 'tvaz', 'section': 'tvaz'}, {'title': 'A-Z'}, img=icon_path("AZ.png"))
     addon.add_directory({'mode': 'tvlastadded', 'section': 'tv24hours', 'url': TVUrl + 'index_last.html'}, {'title': 'Last 24 Hours'}, img=icon_path('Last_24_Hours.png'))
     addon.add_directory({'mode': 'tvlastadded', 'section': 'tv3days', 'url': TVUrl + 'index_last_3_days.html'}, {'title': 'Last 3 Days'}, img=icon_path('Last_3_Days.png'))
     addon.add_directory({'mode': 'tvlastadded', 'section': 'tv7days', 'url': TVUrl + 'index_last_7_days.html'}, {'title': 'Last 7 Days'}, img=icon_path('Last_7_Days.png'))
     addon.add_directory({'mode': 'tvlastadded', 'section': 'tvmonth', 'url': TVUrl + 'index_last_30_days.html'}, {'title': 'This Month'}, img=icon_path('This_Month.png'))
     addon.add_directory({'mode': 'tvlastadded', 'section': 'tv90days', 'url': TVUrl + 'index_last_365_days.html'}, {'title': 'Last 90 Days'}, img=icon_path('Last_90_Days.png'))
+    addon.add_directory({'mode': 'tvpopular', 'section': 'tvpopular'}, {'title': 'Popular'}, img=icon_path('Popular.png'))
+    addon.add_directory({'mode': 'tvseries_all', 'section': 'tvseries_all'}, {'title': 'All'}, img=icon_path('All_Shows.png'))
+    addon.add_directory({'mode': 'tvaz', 'section': 'tvaz'}, {'title': 'A-Z'}, img=icon_path("AZ.png"))
+    addon.add_directory({'mode': 'search', 'section': SearchTV}, {'title': 'Search'}, img=icon_path('Search.png'))
     setView(None, 'default-view')
 
 
