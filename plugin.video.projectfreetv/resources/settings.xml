@@ -1,7 +1,14 @@
 <settings>
+    <category label="Maintenance">
+       <setting id="delete_all_favs" type="action" label="30500" option="close" action="RunPlugin(plugin://plugin.video.projectfreetv/default.py?mode=delete_favs&video_type=all)"/>
+       <setting id="delete_movie_favs" type="action" label="30501" option="close" action="RunPlugin(plugin://plugin.video.projectfreetv/default.py?mode=delete_favs&video_type=movie)"/>
+       <setting id="delete_tv_favs" type="action" label="30502" option="close" action="RunPlugin(plugin://plugin.video.projectfreetv/default.py?mode=delete_favs&video_type=tvshow)"/>
+       <setting id="delete_season_favs" type="action" label="30503" option="close" action="RunPlugin(plugin://plugin.video.projectfreetv/default.py?mode=delete_favs&video_type=season)"/>
+       <setting id="delete_episode_favs" type="action" label="30504" option="close" action="RunPlugin(plugin://plugin.video.projectfreetv/default.py?mode=delete_favs&video_type=episode)"/>
+    </category>
     <category label="Meta Data">
        <setting id="use-meta" type="bool" label="30600" default="true"/>
-       <setting id="meta-path" type="action" label="30601" option="close" enable="!eq(-1,false)" action="RunScript(special://home/addons/plugin.video.icefilms/default.py,url=nothing,mode=58,name=Metahanlder+Settings)"/>
+       <setting id="meta-path" type="action" label="30601" option="close" enable="!eq(-1,false)" action="RunPlugin(plugin://plugin.video.projectfreetv/default.py?mode=meta_settings)"/>
        <setting id="movie-covers" type="bool" label="30602" default="true" enable="!eq(-2,false)"/>
        <setting id="tv-banners" type="bool" label="30603" default="true" enable="!eq(-3,false)"/>
        <setting id="tv-posters" type="bool" label="30604" default="false" enable="!eq(-1,false) + !eq(-4,false)"/>	  

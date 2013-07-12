@@ -1,5 +1,12 @@
 <strings>
-    
+
+    <!-- Maintenance -->    
+    <string id="30500">Delete All Favourites</string>
+    <string id="30501">Delete Movie Favourites</string>
+    <string id="30502">Delete TV Show Favourites</string>
+    <string id="30503">Delete Season Favourites</string>
+    <string id="30504">Delete Episode Favourites</string>
+
     <!-- Auto View -->
     <string id="30400">Enable Automatic View</string>
     <string id="30401">Movies View</string>
