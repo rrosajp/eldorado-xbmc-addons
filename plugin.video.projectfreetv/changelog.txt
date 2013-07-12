@@ -1,4 +1,5 @@
-[B]v1.0.3 (Friday, 05 February 2013):[/B]
+[B]v2.0.0 (Wednesday, 10 July 2013):[/B]
+  - New Graphics! THANKS to XBMCHub user [B]tom_elkrider[/B]
   - Fixed blank episode names
   - Cleaned up code a bit, hopefully make meta data scraping faster
   - Added TV Shows watched/unwatched counts
@@ -10,6 +11,7 @@
   - Added TV Shows - All listing
   - Added TV Shows - Upcoming New Episodes
   - Removed Movies - Popular, section is no longer on the site
+  - Added some maintenance options to Addon Settings - Delete Favourites
 
 [B]v1.0.2 (Thursday, 31 January 2013):[/B]
   - Fixed stupid bug when meta data is disabled
