@@ -40,13 +40,13 @@ print 'Page: ' + str(page_num)
 
 main_url = 'http://www.tgun.tv/'
 shows_url = main_url + 'shows/'
-#showlist_url_1 = shows_url + 'chmm.php'
-showlist_url_1 = "http://www.tgun.tv/menus/shows/chmenu.php"
-showlist_url_2 = shows_url + 'chmm2.php'
+#showlist_url = 'http://www.tgun.tv/menus2/shows/chmenu%s.php'
+showlist_url = 'http://www.tgun.tv/menus/shows/chmenu.php'
+num_showpages = 4
 classic_url = main_url + 'classic/'
-classic_shows_url = classic_url + 'chm%s.php'
+classic_shows_url = 'http://www.tgun.tv/menus2/classic/chmenu%s.php'
 livetv_url = main_url + 'usa/'
-livetv_pages = livetv_url + 'chmtv%s.php'
+livetv_pages = 'http://www.tgun.tv/menus2/usa/chmenu%s.php'
 addon_path = xaddon.getAddonInfo('path')
 icon_path = addon_path + "/icons/"
 
@@ -100,17 +100,12 @@ def justintv(embedcode):
         jtv_token = ' jtv='+data[0]['token'].replace('\\','\\5c').replace(' ','\\20').replace('"','\\22')
     except:
         Notify('small','Offline', 'Channel is currently offline','')
-        return None
+        return 'Offline'
     rtmp = data[0]['connect']+'/'+data[0]['play']
     swf = ' swfUrl=%s swfVfy=1' % getSwfUrl(channel_name)
     page_url = ' Pageurl=http://www.justin.tv/' + channel_name
     final_url = rtmp + jtv_token + swf + page_url
     return final_url
-
-
-def get_blogspot(embedcode):
-    print 'blogspot'
-    return ''
 
 
 def sawlive(embedcode, ref_url):
@@ -150,6 +145,33 @@ def sawlive(embedcode, ref_url):
     return rtmpUrl
 
 
+def shidurlive(embedcode, ref_url):
+    url = re.search("<script type='text/javascript'> swidth='100%', sheight='100%';</script><script type='text/javascript' src='(.+?)'></script>", embedcode, re.DOTALL).group(1)
+    ref_data = {'Referer': ref_url}
+
+    try:
+        html = net.http_GET(url,ref_data).content
+        url = re.search('src="(.+?)">', html).group(1)
+    except Exception, e:
+        addon.log_error('Cannot resolver shidurlive link')
+        return None
+
+    html = net.http_GET(url, ref_data).content
+    
+    swfPlayer = re.search('SWFObject\(\'(.+?)\'', html).group(1)
+    playPath = re.search('\'file\', \'(.+?)\'', html).group(1)
+    streamer = re.search('\'streamer\', \'(.+?)\'', html).group(1)
+    appUrl = re.search('rtmp[e]*://.+?/(.+?)\'', html).group(1)
+    rtmpUrl = ''.join([streamer,
+       ' playpath=', playPath,
+       ' app=', appUrl,
+       ' pageURL=', url,
+       ' swfUrl=', swfPlayer,
+       ' live=true'])
+    print rtmpUrl
+    return rtmpUrl
+
+
 def mediaplayer(embedcode):
     url = re.search('<embed type="application/x-mplayer2" .+? src="(.+?)"></embed>', embedcode).group(1)
     print 'Retrieving: %s' % url
@@ -169,6 +191,7 @@ def ilive(embedcode):
     
     #channel = re.search('<script type="text/javascript" src="http://www.ilive.to/embed/(.+?)&width=.+?"></script>', embedcode)
     channel = par
+    print channel
     
     if channel:
         #url = 'http://www.ilive.to/embedplayer.php?channel=%s' % channel.group(1)
@@ -185,11 +208,10 @@ def ilive(embedcode):
     return rtmp + ' playPath=' + filename + ' swfUrl=' + swf + ' swfVfy=true live=true pageUrl=' + url
 
 
-def embedrtmp(embedcode):
-    stream = re.search('<embed src="(.+?)".*?;file=(.+?)&amp;streamer=(.+?)&amp;.*?>', embedcode)
-    print stream.group(3)
-    app = re.search('rtmp[e]*://.+?/(.+?/)', stream.group(3)).group(1)
-    return stream.group(3) + ' app=' + app + ' playpath=' + stream.group(2) + ' swfUrl=' + stream.group(1) + ' live=true'
+def embedrtmp(embedcode, url):
+    stream = re.search('<embed src="(.+?)" allowfullscreen="true" allowscriptaccess="always" flashvars="streamer=(rtmp://.+?)&amp;file=(.+?)&amp;type', embedcode)
+    app = re.search('rtmp[e]*://.+?/(.+)', stream.group(2)).group(1)
+    return stream.group(2) + ' app=' + app + ' playpath=' + stream.group(3) + ' swfUrl=' + stream.group(1) + ' pageUrl=' + url + ' live=true'
 
 
 def castto(embedcode, url):
@@ -269,19 +291,29 @@ def get_embed(html):
 
 def determine_stream(embedcode, url):
     if re.search('justin.tv', embedcode):
+        print 'justin'
         stream_url = justintv(embedcode)
     elif re.search('castto', embedcode):
+        print 'casto'
         stream_url = castto(embedcode, url)
     elif re.search('owncast', embedcode):
+        print 'owncast'
         stream_url = owncast(embedcode, url)
     elif re.search('sawlive', embedcode):
+        print 'sawlive'
         stream_url = sawlive(embedcode, url)
+    elif re.search('shidurlive', embedcode):
+        print 'shidurlive'
+        stream_url = shidurlive(embedcode, url)       
     elif re.search('ilive.to', embedcode):
+        print 'ilive'
         stream_url = ilive(embedcode)	
     elif re.search('MediaPlayer', embedcode):
         stream_url = mediaplayer(embedcode)
     elif re.search('rtmp', embedcode):
-        stream_url = embedrtmp(embedcode)
+        stream_url = embedrtmp(embedcode, url)
+    elif re.search('Ref1=(.+?asf)', embedcode):
+        stream_url = re.search('Ref1=(.+?asf)', embedcode).group(1)
     else:
         stream_url = None
     return stream_url
@@ -292,15 +324,37 @@ if play:
     #Check for channel name at the end of url
     global par
     par = urlparse(url).query
-      
+    
+    #Sometimes they pass in the url we want in a url query parm, check first
+    r = re.search("((HTTP|http)://.+)", par)
+    if r:
+        url = r.group(1)
+
     html = net.http_GET(url).content
     #embedcode = get_embed(html)
+
+    #Check for channels that have multiple stream sources
+    stream_sources = re.compile('<a style="color: #000000; text-decoration: none;padding:10px; background: #38ACEC" href="#" onClick="Chat=window.open\(\'(.+?)\',\'player\',\'\'\); return false;"><b>(.+?)</b></a>').findall(html)
     
+    if stream_sources:
+        names = []
+        links = []
+        for link, name in stream_sources:
+            names.append(name)
+            links.append(link)
+        
+        dialog = xbmcgui.Dialog()
+        index = dialog.select('Choose a video source', names)
+        if index >= 0:
+            url = links[index]
+            html = net.http_GET(url).content
+            par = urlparse(url).query
+   
     #Remove any commented out sources to we don't try to use them
     embedcode = re.sub('(?s)<!--.*?-->', '', html).strip()
-    html = re.sub('(?s)<!--.*?-->', '', html).strip()
+    #html = re.sub('(?s)<!--.*?-->', '', html).strip()
 
-    if re.search('playerindex.php', html):
+    if re.search('players/playerindex[0-9]*.php', html):
         #channel = urllib2.unquote(re.search('src="playerindex.php\?(.+?)"', embedcode).group(1))
         #html = playerindex(embedcode)
         embedcode = ''
@@ -326,9 +380,7 @@ if play:
                 print embedcode
                 if re.search('streamer', embedcode):
                     stream = re.search('streamer=(.+?)&file=(.+?)&skin=.+?src="(.+?)"', embedcode)
-                    print 'BING!!'
                     if stream:
-                        print 'BOING!!!'
                         if '+' in stream.group(2):
                             playpath = par
                         else:
@@ -357,40 +409,46 @@ if play:
             stream_url = None
 
     #Play the stream
-    if stream_url:
+    if stream_url and stream_url <> "Offline":
         addon.resolve_url(stream_url)
 
 
 def tvchannels(turl = url, tpage = page_num):
+    #turl = turl % tpage
     print 'Retrieving: %s' % turl
     html = net.http_GET(turl).content
 
-    tpage = int(tpage) 
+    #tpage = int(tpage) 
     #if tpage > 1:
     #    addon.add_directory({'mode': 'mainexit'}, {'title': '[COLOR red]Back to Main Menu[/COLOR]'}, img=icon_path + 'back_arrow.png')
 
-    #if tpage < 2:
+    #if tpage < num_showpages:
     #    tpage = tpage +  1
-    #    addon.add_directory({'mode': 'tvchannels', 'url': showlist_url_2, 'page_num': tpage}, {'title': '[COLOR blue]Next Page[/COLOR]'}, img=icon_path + 'next_arrow.png')
+    #    addon.add_directory({'mode': 'tvchannels', 'url': showlist_url, 'page_num': tpage}, {'title': '[COLOR blue]Next Page[/COLOR]'}, img=icon_path + 'next_arrow.png')
 
     #Remove any commented out sources to we don't try to use them
     html = re.sub('(?s)<!--.*?-->', '', html).strip()
     
+    #match = re.compile('<a Title="" href="#" onClick="Chat=window.open\(\'(.+?)\',\'img_m\',\'\'\); return false;"><img border="0" src="(.+?)" style="filter:alpha \(opacity=50\); -moz-opacity:0.5" onMouseover="lightup\(this, 100\)" onMouseout="lightup\(this, 30\)" width="110" height="80"></a>(.+?)</td>').findall(html)
     match = re.compile('<a Title="(.+?)" href="(.+?)" target="vid_z"><img src="(.+?)" border="1" width=120 height=90 /></a>').findall(html)
+    if not match:
+        match = re.compile('<a Title=".*" href="(.+?)" target="img_m"><img border="0" src="(.+?)" style="filter:alpha[ \(opacity=50\)]*; -moz-opacity:0.5" onMouseover="lightup\(this, 100\)" onMouseout="lightup\(this, 30\)" width="110" height="80"></a>(.+?)</td>').findall(html)
+    #for link, thumb, name in match:
     for name, link, thumb in match:
         if not re.search('http://', thumb):
             thumb = main_url + thumb
-        if re.search('http://www.tgun.tv/menus/players/playerindex.php', link):
+        if re.search('http://www.tgun.tv/menus/players/playerindex[0-9]*.php', link):
             name = name + '[COLOR blue]*[/COLOR]'
         addon.add_video_item({'mode': 'channel', 'url': link}, {'title': name}, img=thumb)
-            	
+
     
 def mainmenu():
-    turl = showlist_url_1
-    tvchannels(turl, 1)
-    #addon.add_directory({'mode': 'tvchannels', 'url': showlist_url_1, 'page_num': page}, {'title': 'Live TV Shows & Movies'}, img=icon_path + 'newtv.png')
-    #addon.add_directory({'mode': 'classics', 'url': classic_shows_url % page, 'page_num': page}, {'title': 'Classic TV Shows'}, img=icon_path + 'retrotv.png')
-    #addon.add_directory({'mode': 'livetv', 'url': livetv_pages % '', 'page_num': page}, {'title': 'Live TV Channels'}, img=icon_path + 'retrotv.png')
+    #tvchannels(showlist_url, 1)
+    whatismyip = "http://icanhazip.com/"
+    print urllib2.urlopen(whatismyip).readlines()[0]
+    addon.add_directory({'mode': 'tvchannels', 'url': showlist_url, 'page_num': 1}, {'title': 'Live TV Shows & Movies'}, img=icon_path + 'newtv.png')
+    addon.add_directory({'mode': 'classics', 'url': classic_shows_url % 1, 'page_num': 1}, {'title': 'Classic TV Shows'}, img=icon_path + 'retrotv.png')
+    addon.add_directory({'mode': 'livetv', 'url': livetv_pages % 1, 'page_num': 1}, {'title': 'Live TV Channels'}, img=icon_path + 'livetv.png')
 
 
 if mode == 'main':
@@ -414,15 +472,15 @@ elif mode == 'classics':
     if page > 1:
         addon.add_directory({'mode': 'mainexit'}, {'title': '[COLOR red]Back to Main Menu[/COLOR]'}, img=icon_path + 'back_arrow.png')
 
-    if page < 6:
+    if page < 4:
         page = page +  1
         addon.add_directory({'mode': 'classics', 'url': classic_shows_url % page, 'page_num': page}, {'title': '[COLOR blue]Next Page[/COLOR]'}, img=icon_path + 'next_arrow.png')
 
-    match = re.compile('<td width=110><a href="(.+?)"><img src="(.+?)" border="0" width=100 height=60 />(.+?)</a>').findall(html)
+    match = re.compile('<a Title="" href="(.+?)" target="img_m"><img border="0" src="(.+?)" style="filter:alpha\(opacity=50\); -moz-opacity:0.5" onMouseover="lightup\(this, 100\)" onMouseout="lightup\(this, 30\)" width="110" height="80"></a>(.+?)</td>').findall(html)
     for link, thumb, name in match:
         if not re.search('http://', thumb):
             thumb = main_url + thumb
-        addon.add_video_item({'mode': 'channel', 'url': classic_url + link}, {'title': name}, img=thumb)
+        addon.add_video_item({'mode': 'channel', 'url': link}, {'title': name}, img=thumb)
 
 
 elif mode == 'livetv':
@@ -433,15 +491,15 @@ elif mode == 'livetv':
     if page > 1:
         addon.add_directory({'mode': 'mainexit'}, {'title': '[COLOR red]Back to Main Menu[/COLOR]'}, img=icon_path + 'back_arrow.png')
 
-    if page < 7:
+    if page < 4:
         page = page +  1
         addon.add_directory({'mode': 'livetv', 'url': livetv_pages % page, 'page_num': page}, {'title': '[COLOR blue]Next Page[/COLOR]'}, img=icon_path + 'next_arrow.png')
 
-    match = re.compile('<td width="100%" .+? href="(.+?)"><img border="0" src="(.+?)" style=.+?></a>(.+?)</td>').findall(html)
+    match = re.compile('<td width="100%" .+? href="(.+?)" target="img_m"><img border="0" src="(.+?)" style=.+?></a>(.+?)</td>').findall(html)
     for link, thumb, name in match:
         if not re.search('http://', thumb):
             thumb = main_url + thumb
-        addon.add_video_item({'mode': 'channel', 'url': livetv_url + link}, {'title': name}, img=thumb)
+        addon.add_video_item({'mode': 'channel', 'url': link}, {'title': name}, img=thumb)
 
     
 elif mode == 'exit':
