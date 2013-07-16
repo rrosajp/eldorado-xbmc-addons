@@ -1,3 +1,10 @@
+[B]v0.0.90 (Tuesday, 16 July 2013):[/B]
+  - Added back Classic TV channels
+  - Added early support for Live TV channels
+  - Updated for new site layout
+  - Added shidurlive resolver
+  - Added support for skyaccess streams
+  
 [B]v0.0.34 (Saturday, 01 June 2013):[/B]
   - Quick patch to fix html pages
   
