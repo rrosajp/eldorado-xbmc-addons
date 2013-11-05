@@ -417,6 +417,7 @@ def tvchannels(turl = url, tpage = page_num):
     #turl = turl % tpage
     print 'Retrieving: %s' % turl
     html = net.http_GET(turl).content
+    print html
 
     #tpage = int(tpage) 
     #if tpage > 1:
@@ -430,7 +431,7 @@ def tvchannels(turl = url, tpage = page_num):
     html = re.sub('(?s)<!--.*?-->', '', html).strip()
     
     #match = re.compile('<a Title="" href="#" onClick="Chat=window.open\(\'(.+?)\',\'img_m\',\'\'\); return false;"><img border="0" src="(.+?)" style="filter:alpha \(opacity=50\); -moz-opacity:0.5" onMouseover="lightup\(this, 100\)" onMouseout="lightup\(this, 30\)" width="110" height="80"></a>(.+?)</td>').findall(html)
-    match = re.compile('<a Title="(.+?)" href="(.+?)" target="vid_z"><img src="(.+?)" border="1" width=120 height=90 /></a>').findall(html)
+    match = re.compile('<a Title="(.+?)" href="#" onClick="Chat=window.open\(\'(.+?)\',\'vid_z\',\'\'\); return false;"><img src="(.+?)" border="1" width=120 height=90 /></a>').findall(html)
     if not match:
         match = re.compile('<a Title=".*" href="(.+?)" target="img_m"><img border="0" src="(.+?)" style="filter:alpha[ \(opacity=50\)]*; -moz-opacity:0.5" onMouseover="lightup\(this, 100\)" onMouseout="lightup\(this, 30\)" width="110" height="80"></a>(.+?)</td>').findall(html)
     #for link, thumb, name in match:
