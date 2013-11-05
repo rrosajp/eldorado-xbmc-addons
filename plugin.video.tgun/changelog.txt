@@ -1,3 +1,6 @@
+[B]v0.0.92 (Monday, 04 November 2013):[/B]
+  - Just for fun
+
 [B]v0.0.91 (Monday, 04 November 2013):[/B]
   - Updated regex for Live TV Shows & Movies section
 
