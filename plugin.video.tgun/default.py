@@ -385,7 +385,7 @@ if play:
                             playpath = par
                         else:
                             playpath = stream.group(2)
-                        stream_url = stream.group(1) + ' playpath=' + playpath + ' swfUrl=http://www.tgun.tv' + stream.group(3) + ' pageUrl=' + url + ' live=true'                        
+                        stream_url = stream.group(1) + ' playpath=' + playpath + ' swfUrl=' + stream.group(3) + ' pageUrl=' + url + ' live=true'                        
                     else:
                         swfPlayer = re.search('SWFObject\(\'(.+?)\'', embedcode).group(1)
                         streamer = re.search('\'streamer\',\'(.+?)\'', embedcode).group(1)
