@@ -1,3 +1,6 @@
+[B]v0.0.93 (Thursday, 07 November 2013):[/B]
+  - Updated swf url for tgun based streams
+  
 [B]v0.0.92 (Monday, 04 November 2013):[/B]
   - Just for fun
 
