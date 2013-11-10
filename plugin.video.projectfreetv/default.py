@@ -43,7 +43,8 @@ imdb_id = addon.queries.get('imdb_id', '')
 season = addon.queries.get('season', '')
 episode = addon.queries.get('episode', '')
 
-print '---------------------------------------------------------------'
+print '-----------------Project Free TV Addon Params------------------'
+print '--- Version: ' + str(addon.get_version())
 print '--- Mode: ' + str(mode)
 print '--- Play: ' + str(play)
 print '--- URL: ' + str(url)
@@ -132,6 +133,7 @@ def setView(content, viewType):
     xbmcplugin.addSortMethod( handle=int( sys.argv[ 1 ] ), sortMethod=xbmcplugin.SORT_METHOD_PROGRAM_COUNT )
     xbmcplugin.addSortMethod( handle=int( sys.argv[ 1 ] ), sortMethod=xbmcplugin.SORT_METHOD_VIDEO_RUNTIME )
     xbmcplugin.addSortMethod( handle=int( sys.argv[ 1 ] ), sortMethod=xbmcplugin.SORT_METHOD_GENRE )
+    xbmcplugin.addSortMethod( handle=int( sys.argv[ 1 ] ), sortMethod=xbmcplugin.SORT_METHOD_MPAA_RATING )
 
 
 def add_favourite():
@@ -720,14 +722,20 @@ elif mode == 'search':
     search_text = ""
     search_list = []
     new_search = False
-    search_hist = cache.get('search_' + section)
-    
-    #Convert returned string back into a list
-    if search_hist:
-        try:
-            search_list = eval(search_hist)
-        except:
-            search_list.insert(0, search_hist)
+
+    #Check first if a 'name' has been passed in - signals an adhoc search request
+    if name:
+        new_search = True
+        search_text = name
+    else:
+        search_hist = cache.get('search_' + section)
+       
+        #Convert returned string back into a list
+        if search_hist:
+            try:
+                search_list = eval(search_hist)
+            except:
+                search_list.insert(0, search_hist)
 
     #If we have historical search items, prompt the user with list
     if search_list:
@@ -859,6 +867,22 @@ elif mode=='delete_favs':
             else:
                 cache.delete('favourites_%s' % video_type)
             Notify('small', 'PFTV Favourites', 'PFTV %s Favourites Deleted' % video_type.title())
+
+
+elif mode=='delete_search_history':
+    dialog = xbmcgui.Dialog()
+    ret = dialog.yesno('Delete Search History', 'Do you wish to delete PFTV Search History', '','This cannot be undone!')
+
+    if ret == True:
+      addon.log("Deleting search history")
+      try:
+          cache.delete('search_all')
+          cache.delete('search_movies')
+          cache.delete('search_shows')
+          Notify('small', 'PFTV History', 'PFTV Search History Deleted')
+      except Exception, e:
+          addon.log("Failed to delete search history: %s" % e)
+          Notify('big', 'PFTV History', 'Error deleting PFTV search history')
 
 
 if not play:
