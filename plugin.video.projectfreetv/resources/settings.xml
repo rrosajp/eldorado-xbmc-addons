@@ -1,5 +1,7 @@
 <settings>
     <category label="Maintenance">
+       <setting id="delete_search_hist" type="action" label="30505" option="close" action="RunPlugin(plugin://plugin.video.projectfreetv/default.py?mode=delete_search_history)"/>       
+       <setting type="sep" />
        <setting id="delete_all_favs" type="action" label="30500" option="close" action="RunPlugin(plugin://plugin.video.projectfreetv/default.py?mode=delete_favs&video_type=all)"/>
        <setting id="delete_movie_favs" type="action" label="30501" option="close" action="RunPlugin(plugin://plugin.video.projectfreetv/default.py?mode=delete_favs&video_type=movie)"/>
        <setting id="delete_tv_favs" type="action" label="30502" option="close" action="RunPlugin(plugin://plugin.video.projectfreetv/default.py?mode=delete_favs&video_type=tvshow)"/>
