@@ -1,3 +1,7 @@
+[B]v2.2.0 (Tuesday, 26 November 2013):[/B]
+  - Added proxy support to addon settings
+  - Added Domain selection and Custom URL entry
+
 [B]v2.1.0 (Sunday, 10 November 2013):[/B]
   - Update to search functionality to allow use in The Collective
   - Added Clear Search History option to Maintenance tab in Addon Settings
