@@ -1,5 +1,5 @@
 import xbmc, xbmcgui, xbmcplugin
-import urllib
+import urllib, urllib2
 import re, string
 
 try:
@@ -60,7 +60,16 @@ print '---------------------------------------------------------------'
 ################### Global Constants #################################
 
 #URLS
-MainUrl = 'http://www.free-tv-video-online.me/'
+website_url = addon.get_setting('website_url')
+if website_url == "Custom URL":
+    custom_url = addon.get_setting('custom_url')
+    if custom_url.endswith("/"):
+        MainUrl = custom_url
+    else:
+        MainUrl = custom_url + "/"
+else:
+    MainUrl = website_url
+
 SearchUrl = MainUrl + 'search/?q=%s&md=%s'
 MovieUrl = MainUrl + "movies/"
 TVUrl = MainUrl + "internet/"
@@ -95,6 +104,23 @@ def icon_path(filename):
     
 def get_html(page_url):
     
+    if addon.get_setting('proxy_enable') == 'true':
+        proxy = 'http://' + addon.get_setting('proxy') + ':' + addon.get_setting('proxy_port')
+        proxy_handler = urllib2.ProxyHandler({'http': proxy})
+        username = addon.get_setting('proxy_user')
+        password = addon.get_setting('proxy_pass')
+        if username <> '' and password <> '':
+            print 'Using authenticated proxy: %s' % proxy
+            password_mgr = urllib2.HTTPPasswordMgrWithDefaultRealm()
+            password_mgr.add_password(None, proxy, username, password)
+            proxy_auth_handler = urllib2.ProxyBasicAuthHandler(password_mgr)
+            opener = urllib2.build_opener(proxy_handler, proxy_auth_handler)
+        else:
+            print 'Using proxy: %s' % proxy
+            opener = urllib2.build_opener(proxy_handler)
+        
+        urllib2.install_opener(opener)
+        
     html = net.http_GET(page_url).content
     
     import HTMLParser
