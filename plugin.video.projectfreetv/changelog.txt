@@ -1,3 +1,6 @@
+[B]v2.2.1 (Friday, 09 May 2014):[/B]
+  - Python vesion bump for Gotham
+
 [B]v2.2.0 (Tuesday, 26 November 2013):[/B]
   - Added proxy support to addon settings
   - Added Domain selection and Custom URL entry
