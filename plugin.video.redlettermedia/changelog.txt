@@ -1,3 +1,11 @@
+[B]v0.9.0(Thursday, 26 June 2014):[/B]
+  - Fixed issues with main page and direct links
+  - Added paging for main page
+  - Added Best of the Worst section
+  - Show images for main page items
+  - Fixed up most of remaining broken sections
+  - Updated addon to Python 2.1.0 for proper Gotham support
+
 [B]v0.1.4(Monday, 06 May 2013):[/B]
   - Fixed main page encoding issue
   
