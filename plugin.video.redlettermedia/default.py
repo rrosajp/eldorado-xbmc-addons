@@ -153,13 +153,13 @@ def mainpage_links(page):
     html = get_url(url)
     sections = re.compile('st-[0-9]+ post type-post status-publish format-standard has-post-thumbnail hentry [categorya-z- ]+" id="post-main-[0-9]+">(.+?)(<div class="po|<script)', re.DOTALL).findall(html)
     for section, nothing in sections:
+        thumb = ''
         blip_link = re.search('<iframe src="(.+?)"', section)
         if blip_link:
             blip_html = net.http_GET(blip_link.group(1)).content
-            icon=re.search('data-episode-thumbnail="(.+?)"', blip_html)
-            thumb='http:' + icon.group(1).replace("THUMB_WIDTH", "630").replace("THUMB_HEIGHT", "350")
-        else:
-            thumb = ''
+            icon=re.search('config.video.thumbnail = "(.+?)"', blip_html)
+            if icon:
+                thumb='http:' + icon.group(1).replace("THUMB_WIDTH", "630").replace("THUMB_HEIGHT", "350")
         entry = re.search('<h2 class="post-title"><a href="(.+?)"[ rel="bookmark"]* title=".+?">(.+?)</a></h2>', section)
         addon.add_video_item({'url': entry.group(1)},{'title':entry.group(2)},img=thumb)
     if re.search('>Next Page', html):
@@ -169,7 +169,7 @@ def mainpage_links(page):
 if mode == 'main': 
     addon.add_directory({'mode': 'plinkett', 'url': MainUrl}, {'title': 'Plinkett Reviews'}, img=IconPath + 'plinkett.jpg')
     addon.add_directory({'mode': 'halfbag', 'url': MainUrl + 'half-in-the-bag/'}, {'title': 'Half in the Bag'}, img=IconPath + 'halfbag.jpg')
-    addon.add_directory({'mode': 'bestworst', 'url': MainUrl + 'best-of-the-worst/'}, {'title': 'Best of the Worst'}, img=IconPath + 'botw-title.jpg')    	
+    addon.add_directory({'mode': 'bestworst', 'url': MainUrl + 'best-of-the-worst/'}, {'title': 'Best of the Worst'}, img=IconPath + 'botw-title.jpg')
     addon.add_directory({'mode': 'featurefilms', 'url': MainUrl + 'films/'}, {'title': 'Feature Films'})
     addon.add_directory({'mode': 'shortfilms', 'url': MainUrl + 'shorts/'}, {'title': 'Short Films'})
     mainpage_links(page=1)
