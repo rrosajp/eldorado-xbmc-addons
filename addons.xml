@@ -78,7 +78,7 @@ Watch all your favorite TV Shows and Movies streamed on constant repeat 24/7 fro
 
 <addon id="script.module.axel.downloader"
 	     name="Axel Downloader"
-	     version="0.2.0"
+	     version="0.2.1"
 	     provider-name="Eldorado">
   <requires>
     <import addon="xbmc.python" version="2.1.0" />
