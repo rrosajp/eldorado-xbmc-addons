@@ -23,7 +23,7 @@
 
 <addon id="plugin.video.redlettermedia"
        name="Red Letter Media"
-       version="0.9.0"
+       version="0.9.1"
        provider-name="Eldorado">
   <requires>
     <import addon="xbmc.python" version="2.1.0"/>

@@ -1,3 +1,6 @@
+[B]v0.9.1(Monday, 10 November 2014):[/B]
+  - Fixed error grabbing main page thumbnails
+
 [B]v0.9.0(Thursday, 26 June 2014):[/B]
   - Fixed issues with main page and direct links
   - Added paging for main page
