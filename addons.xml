@@ -63,13 +63,11 @@ Watch all your favorite TV Shows and Movies streamed on constant repeat 24/7 fro
   </extension>
 </addon>
 
-<addon id="repository.eldorado" name="Eldorado's XBMC Addons" version="2.0.0" provider-name="eldorado">
+<addon id="repository.eldorado" name="Eldorado's XBMC Addons" version="2.0.1" provider-name="eldorado">
 	<extension point="xbmc.addon.repository" name="Eldorado's XBMC Addon Repository">
-		<dir>
-			<info compressed="false">https://github.com/Eldorados/eldorado-xbmc-addons/raw/master/addons.xml</info>
-			<checksum>https://github.com/Eldorados/eldorado-xbmc-addons/raw/master/addons.xml.md5</checksum>
-			<datadir zip="true">https://github.com/Eldorados/eldorado-xbmc-addons/raw/master/repo/</datadir>
-		</dir>
+		<info compressed="false">https://github.com/Eldorados/eldorado-xbmc-addons/raw/master/addons.xml</info>
+		<checksum>https://github.com/Eldorados/eldorado-xbmc-addons/raw/master/addons.xml.md5</checksum>
+		<datadir zip="true">https://github.com/Eldorados/eldorado-xbmc-addons/raw/master/repo/</datadir>
 		<dir>
 			<info compressed="false">https://offshoregit.com/Eldorado/xbmc-addons/raw/master/addons.xml</info>
 			<checksum>https://offshoregit.com/Eldorado/xbmc-addons/raw/master/addons.xml.md5</checksum>
