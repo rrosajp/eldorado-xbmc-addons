@@ -277,7 +277,7 @@ def get_metadata(video_type, vidtitle, metaget=None, vidname='', year='', imdb='
                 meta = meta[0]
     
         if video_type == VideoType_Episode:
-            meta=metaget.get_episode_meta(vidname, imdb, season_num, episode_num)
+            meta=metaget.get_episode_meta(vidtitle, imdb, season_num, episode_num)
         
         #Check for and blank out covers if option disabled
         if video_type==VideoType_Movies and movie_covers == 'false':
