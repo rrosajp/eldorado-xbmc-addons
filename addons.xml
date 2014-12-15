@@ -2,7 +2,7 @@
 <addons>
 <addon id="plugin.video.projectfreetv"
        name="Project Free TV"
-       version="2.2.1"
+       version="2.2.2"
        provider-name="Eldorado">
   <requires>
     <import addon="xbmc.python" version="2.1.0"/>

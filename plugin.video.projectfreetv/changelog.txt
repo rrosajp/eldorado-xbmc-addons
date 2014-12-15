@@ -1,3 +1,6 @@
+[B]v2.2.2 (Monday, 15 Dec 2014):[/B]
+  - Small bug fix for allowing proper subtitles/trakt for tv episodes
+
 [B]v2.2.1 (Friday, 09 May 2014):[/B]
   - Python vesion bump for Gotham
 
