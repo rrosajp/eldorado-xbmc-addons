@@ -1,5 +1,5 @@
-import xbmc, xbmcgui, xbmcaddon, xbmcplugin
-import urllib2
+import xbmc, xbmcgui
+import urllib, urllib2
 import re, string
 import os
 from urlparse import urlparse
@@ -15,7 +15,6 @@ except:
 
 ##### XBMC  ##########
 addon = Addon('plugin.video.tgun', sys.argv)
-xaddon = xbmcaddon.Addon(id='plugin.video.tgun')
 datapath = addon.get_profile()
 
 
@@ -31,10 +30,13 @@ mode = addon.queries['mode']
 page_num = addon.queries.get('page_num', None)
 url = addon.queries.get('url', None)
 
-print 'Mode: ' + str(mode)
-print 'Play: ' + str(play)
-print 'URL: ' + str(url)
-print 'Page: ' + str(page_num)
+addon.log('----------------------TGUN Addon Params------------------------')
+addon.log('--- Version: ' + str(addon.get_version()))
+addon.log('--- Mode: ' + str(mode))
+addon.log('--- Play: ' + str(play))
+addon.log('--- URL: ' + str(url))
+addon.log('--- Page: ' + str(page_num))
+addon.log('---------------------------------------------------------------')
 
 ################### Global Constants #################################
 
@@ -47,7 +49,7 @@ classic_url = main_url + 'classic/'
 classic_shows_url = 'http://www.tgun.tv/menus2/classic/chmenu%s.php'
 livetv_url = main_url + 'usa/'
 livetv_pages = 'http://www.tgun.tv/menus2/usa/chmenu%s.php'
-addon_path = xaddon.getAddonInfo('path')
+addon_path = addon.get_path()
 icon_path = addon_path + "/icons/"
 
 ######################################################################
@@ -69,43 +71,26 @@ def Notify(typeq, title, message, times, line2='', line3=''):
           dialog.ok(' '+title+' ', ' '+message+' ')
 
 
+def get_url(url, data=None, headers=None):
+
+    addon.log('Retrieving: %s' % url)
+    if data:
+        if headers:
+            html = net.http_POST(url, data, headers=headers).content
+        else:
+            html = net.http_POST(url, data).content
+    else:
+        if headers:
+            html = net.http_GET(url, headers=headers).content
+        else:
+            html = net.http_GET(url).content
+        
+    return html
+    
+    
 def sys_exit():
     xbmc.executebuiltin("XBMC.Container.Update(addons://sources/video/plugin.video.tgun?mode=main,replace)")
     return
-
-
-def getSwfUrl(channel_name):
-        """Helper method to grab the swf url, resolving HTTP 301/302 along the way"""
-        base_url = 'http://www.justin.tv/widgets/live_embed_player.swf?channel=%s' % channel_name
-        headers = {'User-agent' : 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:6.0) Gecko/20100101 Firefox/6.0',
-                   'Referer' : 'http://www.justin.tv/'+channel_name}
-        req = urllib2.Request(base_url, None, headers)
-        response = urllib2.urlopen(req)
-        return response.geturl()
-
-
-def justintv(embedcode):
-
-    channel = re.search('data="(.+?)"', embedcode, re.DOTALL).group(1)  
-    channel_name = re.search('http://www.justin.tv/widgets/.+?\?channel=(.+)', channel).group(1)
-    
-    channel_name = par
-    
-    api_url = 'http://usher.justin.tv/find/%s.json?type=live' % channel_name
-    print 'Retrieving: %s' % api_url
-    html = net.http_GET(api_url).content
-    
-    data = json.loads(html)
-    try:
-        jtv_token = ' jtv='+data[0]['token'].replace('\\','\\5c').replace(' ','\\20').replace('"','\\22')
-    except:
-        Notify('small','Offline', 'Channel is currently offline','')
-        return 'Offline'
-    rtmp = data[0]['connect']+'/'+data[0]['play']
-    swf = ' swfUrl=%s swfVfy=1' % getSwfUrl(channel_name)
-    page_url = ' Pageurl=http://www.justin.tv/' + channel_name
-    final_url = rtmp + jtv_token + swf + page_url
-    return final_url
 
 
 def sawlive(embedcode, ref_url):
@@ -115,21 +100,22 @@ def sawlive(embedcode, ref_url):
     try:
         ## Current SawLive resolving technique - always try to fix first
         html = net.http_GET(url,ref_data).content
+        get_url(url, ref_data)
         link = re.search('src="(http://sawlive.tv/embed/watch/[A-Za-z0-9_/]+)">', html).group(1)
-        print link
+        addon.log(link)
 
     except Exception, e:
         ## Use if first section does not work - last resort which returns compiled javascript
-        print 'SawLive resolving failed, attempting jsunpack.jeek.org, msg: %s' % e
+        addon.log('SawLive resolving failed, attempting jsunpack.jeek.org, msg: %s' % e)
         Notify('small','SawLive', 'Resolve Failed. Using jsunpack','')
         
         jsunpackurl = 'http://jsunpack.jeek.org'
         data = {'urlin': url}
-        html = net.http_POST(jsunpackurl, data).content
+        html = get_url(jsunpackurl, data=data)
         link = re.search('src="(http://sawlive.tv/embed/watch/[A-Za-z0-9]+[/][A-Za-z0-9_]+)"',html).group(1)
-        print link
+        addon.log(link)
 
-    html = net.http_GET(link, ref_data).content
+    html = get_url(link, headers=ref_data)
     
     swfPlayer = re.search('SWFObject\(\'(.+?)\'', html).group(1)
     playPath = re.search('\'file\', \'(.+?)\'', html).group(1)
@@ -141,7 +127,7 @@ def sawlive(embedcode, ref_url):
        ' pageURL=', url,
        ' swfUrl=', swfPlayer,
        ' live=true'])
-    print rtmpUrl
+    addon.log(rtmpUrl)
     return rtmpUrl
 
 
@@ -150,13 +136,13 @@ def shidurlive(embedcode, ref_url):
     ref_data = {'Referer': ref_url}
 
     try:
-        html = net.http_GET(url,ref_data).content
+        html = get_url(url, headers=ref_data)
         url = re.search('src="(.+?)">', html).group(1)
     except Exception, e:
         addon.log_error('Cannot resolver shidurlive link')
         return None
 
-    html = net.http_GET(url, ref_data).content
+    html = get_url(url, headers=ref_data)
     
     swfPlayer = re.search('SWFObject\(\'(.+?)\'', html).group(1)
     playPath = re.search('\'file\', \'(.+?)\'', html).group(1)
@@ -168,21 +154,19 @@ def shidurlive(embedcode, ref_url):
        ' pageURL=', url,
        ' swfUrl=', swfPlayer,
        ' live=true'])
-    print rtmpUrl
+    addon.log(rtmpUrl)
     return rtmpUrl
 
 
 def mediaplayer(embedcode):
     url = re.search('<embed type="application/x-mplayer2" .+? src="(.+?)"></embed>', embedcode).group(1)
-    print 'Retrieving: %s' % url
+    addon.log('Retrieving: %s' % url)
     html = net.http_GET(url).content
     
     matches = re.findall('<Ref href = "(.+?)"/>', html)
     url = matches[1]
     
-    print 'Retrieving: %s' % url
-    html = net.http_GET(url).content
-    print html
+    html = get_url(url)
     
     return re.search('Ref1=(.+?.asf)', html).group(1)
 
@@ -191,27 +175,41 @@ def ilive(embedcode):
     
     #channel = re.search('<script type="text/javascript" src="http://www.ilive.to/embed/(.+?)&width=.+?"></script>', embedcode)
     channel = par
-    print channel
+    addon.log(channel)
+    headers = {
+            'Referer': 'http://www.ilive.to/'
+        }
     
     if channel:
         #url = 'http://www.ilive.to/embedplayer.php?channel=%s' % channel.group(1)
         url = 'http://www.ilive.to/embedplayer.php?channel=%s' % channel
-        print 'Retrieving: %s' % url
-        html = net.http_GET(url).content
+        html = get_url(url)
+        
+        token_url=re.compile('''.*getJSON\("([^'"]+)".*''').findall(html)[0]
+        if not token_url.startswith('http'):
+            token_url = 'http:' + token_url
+            
+        token_html = get_url(token_url, headers=headers)
+        token=re.compile('{"token":"(.+?)"}').findall(token_html)[0]
+        
         filename = re.search('file: "([^&]+).flv"', html).group(1)
         rtmp = re.search('streamer: "(.+?)",', html).group(1)
+        rtmp = rtmp.replace("\\", "")
+        app = re.search('rtmp://[\.\w:]*/([^\s]+)', rtmp).group(1)
     else:
         filename = re.search('streamer=rtmp://live.ilive.to/edge&file=(.+?)&autostart=true&controlbar=bottom"', embedcode).group(1)
         url = 'http://www.ilive.to/embedplayer.php'
 
     swf = 'http://player.ilive.to/ilive-plugin.swf'
-    return rtmp + ' playPath=' + filename + ' swfUrl=' + swf + ' swfVfy=true live=true pageUrl=' + url
+    return rtmp + ' playPath=' + filename + ' swfUrl=' + swf + ' swfVfy=true live=true token=' + token + ' app=' + app + ' pageUrl=' + url
 
 
 def embedrtmp(embedcode, url):
-    stream = re.search('<embed src="(.+?)" allowfullscreen="true" allowscriptaccess="always" flashvars="streamer=(rtmp://.+?)&amp;file=(.+?)&amp;type', embedcode)
-    app = re.search('rtmp[e]*://.+?/(.+)', stream.group(2)).group(1)
-    return stream.group(2) + ' app=' + app + ' playpath=' + stream.group(3) + ' swfUrl=' + stream.group(1) + ' pageUrl=' + url + ' live=true'
+    rtmp = re.search('<param name="flashvars" value="&streamer=(.+?)&file', embedcode).group(1)
+    app = re.search('rtmp://[\.\w:]*/([^\s]+)', rtmp).group(1)
+    swf = re.search('type="application/x-shockwave-flash" data="(.+?)"', embedcode).group(1)
+    channel = par
+    return rtmp + ' app=' + app + ' playpath=' + channel + ' swfUrl=http://www.tgun.tv' + swf + ' pageUrl=' + url + ' live=true'
 
 
 def castto(embedcode, url):
@@ -220,7 +218,7 @@ def castto(embedcode, url):
     parms = re.search('<script type="text/javascript"> fid="(.+?)"; v_width=.+; .+ src=".+castto.+"></script>', embedcode)
     
     link = 'http://static.castto.me/embed.php?channel=%s' % parms.group(1)
-    html = net.http_GET(link, data).content
+    html = get_url(link, headers=data)
     swfPlayer = re.search('SWFObject\(\'(.+?)\'', html).group(1)
     playPath = re.search('\'file\',\'(.+?)\'', html).group(1)
     streamer = re.search('\'streamer\',\'(.+?)\'', html).group(1)
@@ -230,7 +228,7 @@ def castto(embedcode, url):
        ' swfUrl=', swfPlayer,
        ' live=true',
        ' token=#ed%h0#w@1'])
-    print rtmpUrl
+    addon.log(rtmpUrl)
     return rtmpUrl
 
 
@@ -266,15 +264,75 @@ def owncast(embedcode, url):
        ' pageURL=', link,
        ' swfUrl=', swfPlayer,
        ' live=true'])
-    print rtmpUrl
+    addon.log(rtmpUrl)
     return rtmpUrl
 
+
+def vaughnlive(embedcode, url):
+    headers = {
+            'Referer': url, 'Host' : 'vaughnlive.tv'
+        }
+    
+    try:
+        vaughn_url = re.search('embed=embed\+\'<iframe src=\"(.+?)\'\+channel\+\'\"', embedcode).group(1) + par
+        html = get_url(vaughn_url, headers=headers)
+
+        domain = urlparse(vaughn_url).netloc
+        serverlist = re.compile('(\d+\.\d+\.\d+\.\d+\:443)').findall(html)
+        stream_hash=re.search('vsVars\d\d\d\d\d\d\d\d\d\d\.[0-9A-Za-z][0-9A-Za-z][0-9A-Za-z][0-9A-Za-z][0-9A-Za-z]+\s+=\s+"(.+?)";',html).group(1).replace("0m0", "")
+        swf_path = re.search('swfobject.embedSWF\("(/\d+/swf/[0-9A-Za-z]+\.swf)"', html).group(1)
+
+        live_tag = 'live'
+        if   'instagib.' in domain: live_tag='instagib'
+        elif 'vapers.'   in domain: live_tag='vapers'
+        elif 'breakers.' in domain: live_tag='breakers'
+        
+        rtmpUrl = "rtmp://%s/live?%s Playpath=%s_%s swfUrl=http://%s%s live=true pageUrl=http://%s/embed/video/%s?viewers=true&watermark=left&autoplay=true %s Conn=S:OK --live" % (serverlist[0], stream_hash, live_tag, par, domain, swf_path, domain, par, '')
+        
+        addon.log(rtmpUrl)
+        return rtmpUrl
+
+    except Exception, e:
+        addon.log_error('Failed to resolve Vaughn Live: %s' % e)
+        return None
+
+def zerocast(embedcode, url):
+    headers = {
+            'Referer': url, 'Host' : 'zerocast.in'
+        }
+    
+    try:
+        zero_url = re.search('src="(.+?)"></script>', embedcode).group(1)
+        html = get_url(zero_url, headers=headers)
+        zero_url = re.search('var url = \'(.+?)\';', html).group(1)
+        html = get_url(zero_url, headers=headers)
+        
+        token_url = re.search('getJSON\("(.+?)",', html).group(1)
+        token_html = get_url(token_url, headers=headers)
+        token=re.compile('{"token":"(.+?)"}').findall(token_html)[0]
+        
+        rtmp = re.search('file: "(.+?)",', html).group(1)
+        playPath = re.search('rtmp://[\.\w:]*/[^\s]+/([^\s]+)', rtmp).group(1)
+        
+        rtmpUrl = ''.join(['rtmpe://207.244.74.135:1935/goLive',
+        ' playpath=', playPath,
+        ' pageURL=', zero_url,
+        ' swfUrl=', 'http://cdn.zerocast.tv/player/jwplayer.flash.swf',
+        ' token=', token,
+        ' live=true'])
+        
+        addon.log(rtmpUrl)
+        return rtmpUrl
+        
+    except Exception, e:
+        addon.log_error('Failed to resolve Vaughn Live: %s' % e)
+        return None
 
 def playerindex(embedcode):
     link = re.search('iframe src="(.+?)"', embedcode).group(1)
     link = urllib2.unquote(urllib2.unquote(link))
-    print 'Retrieving: %s' % link 
-    html = net.http_GET('http://www.tgun.tv/shows/' + link).content
+    addon.log('Retrieving: %s' % link)
+    html = get_url('http://www.tgun.tv/shows/' + link)
     return html
 
 
@@ -283,31 +341,33 @@ def get_embed(html):
     embedtext = "</div>(.+?)<!-- start Ad Code 2 -->"
     #embedcode = re.search(embedtext, html, re.DOTALL).group(2)
     embedcode = re.search(embedtext, html, re.DOTALL).group(1)
-    
     #Remove any commented out sources to we don't try to use them
     embedcode = re.sub('(?s)<!--.*?-->', '', embedcode).strip()
     return embedcode
 
 
 def determine_stream(embedcode, url):
-    if re.search('justin.tv', embedcode):
-        print 'justin'
-        stream_url = justintv(embedcode)
+    if re.search('vaughnlive.tv', embedcode):
+        addon.log_debug('vaughnlive.tv')
+        stream_url = vaughnlive(embedcode, url)
+    elif re.search('zerocast.tv', embedcode):
+        addon.log_debug('zerocast.tv')
+        stream_url = zerocast(embedcode, url)
     elif re.search('castto', embedcode):
-        print 'casto'
+        addon.log_debug('casto')
         stream_url = castto(embedcode, url)
     elif re.search('owncast', embedcode):
-        print 'owncast'
+        addon.log_debug('owncast')
         stream_url = owncast(embedcode, url)
     elif re.search('sawlive', embedcode):
-        print 'sawlive'
+        addon.log_debug('sawlive')
         stream_url = sawlive(embedcode, url)
     elif re.search('shidurlive', embedcode):
-        print 'shidurlive'
+        addon.log_debug('shidurlive')
         stream_url = shidurlive(embedcode, url)       
     elif re.search('ilive.to', embedcode):
-        print 'ilive'
-        stream_url = ilive(embedcode)	
+        addon.log_debug('ilive')
+        stream_url = ilive(embedcode)
     elif re.search('MediaPlayer', embedcode):
         stream_url = mediaplayer(embedcode)
     elif re.search('rtmp', embedcode):
@@ -318,7 +378,21 @@ def determine_stream(embedcode, url):
         stream_url = None
     return stream_url
 
+    
+def decode_text(s, split_val, added_val, minus_val):
+    r = ""
+    tmp = s.split(split_val)
+    s = urllib.unquote(tmp[0])
+    k = urllib.unquote(tmp[1] + added_val)
 
+    i = 0
+    for letter in s:
+        r = r + chr(int(int(k[i % len(k)]) ^ ord(s[i])) + - int(minus_val))
+        i = i + 1
+
+    return r
+ 
+ 
 if play:
 
     #Check for channel name at the end of url
@@ -330,8 +404,11 @@ if play:
     if r:
         url = r.group(1)
 
-    html = net.http_GET(url).content
-    #embedcode = get_embed(html)
+    headers = {
+            'Referer': url, 'Host' : 'www.tgun.tv'
+        }        
+
+    html = get_url(url, headers=headers)
 
     #Check for channels that have multiple stream sources
     stream_sources = re.compile('<a style="color: #000000; text-decoration: none;padding:10px; background: #38ACEC" href="#" onClick="Chat=window.open\(\'(.+?)\',\'player\',\'\'\); return false;"><b>(.+?)</b></a>').findall(html)
@@ -347,63 +424,53 @@ if play:
         index = dialog.select('Choose a video source', names)
         if index >= 0:
             url = links[index]
-            html = net.http_GET(url).content
             par = urlparse(url).query
-   
+            if par.startswith('http://'):
+                url = par
+            html = get_url(url)
+
     #Remove any commented out sources to we don't try to use them
     embedcode = re.sub('(?s)<!--.*?-->', '', html).strip()
     #html = re.sub('(?s)<!--.*?-->', '', html).strip()
 
-    if re.search('players/playerindex[0-9]*.php', html):
-        #channel = urllib2.unquote(re.search('src="playerindex.php\?(.+?)"', embedcode).group(1))
-        #html = playerindex(embedcode)
+    if re.search('/playerindex[0-9]*.php', html) or re.search('http://www.tgun.tv/embeds2/index[0-9]*.html\?', html):
         embedcode = ''
 
     if re.search('http://tgun.tv/embed/', embedcode):
         link = re.search('src="(.+?)"', embedcode).group(1)
-        embedcode = net.http_GET(link).content      
+        embedcode = get_url(link)
         embedcode = re.sub('(?s)<!--.*?-->', '', embedcode).strip()
 
     stream_url = determine_stream(embedcode, url)
-
+    
     if not stream_url:
-        #If can't find anything lets do a quick check for escaped html for hidden links
+        #If can't find anything assume it's TGUN owned stream and parse
         if not embedcode or re.search('document.write\(unescape', html):
-            escaped = re.search('document.write\(unescape\(\'(.+?)\'\)\);', html)
-            escaped2 = re.search('<script type="text/javascript">var embed="";embed=embed\+\'<object width="640" height="466" id="dplayer"(.+?)</script>', html)
-            if escaped or escaped2:
-                if escaped:
-                    embedcode = urllib2.unquote(urllib2.unquote(escaped.group(1)))
-                else:
-                    embedcode = urllib2.unquote(urllib2.unquote(escaped2.group(1)))
-                embedcode = urllib2.unquote(urllib2.unquote(embedcode))
-                print embedcode
-                if re.search('streamer', embedcode):
-                    stream = re.search('streamer=(.+?)&file=(.+?)&skin=.+?src="(.+?)"', embedcode)
-                    if stream:
-                        if '+' in stream.group(2):
-                            playpath = par
-                        else:
-                            playpath = stream.group(2)
-                        stream_url = stream.group(1) + ' playpath=' + playpath + ' swfUrl=http://www.tgun.tv' + stream.group(3) + ' pageUrl=' + url + ' live=true'                        
-                    else:
-                        swfPlayer = re.search('SWFObject\(\'(.+?)\'', embedcode).group(1)
-                        streamer = re.search('\'streamer\',\'(.+?)\'', embedcode).group(1)
-                        playPath = channel
-                        stream_url = ''.join([streamer,
-                                       ' playpath=', playPath,
-                                       ' pageURL=', url,
-                                       ' swfUrl=', 'http://www.tgun.tv' + swfPlayer,
-                                       ' live=true'])
-                    print stream_url
-                elif re.search('http://tgun.tv/embed', embedcode):
-                    link = re.search('src="(.+?)"', html)
-                    if link:
-                        html = net.http_GET(link.group(1)).content
-                        html = re.sub('(?s)<!--.*?-->', '', html).strip()
-                        stream_url = determine_stream(html, link.group(1))
-                    else:
-                        stream_url = None
+            print 'here2'
+            try:
+                url = re.search('<iframe src="(.+?)\'\+channel\+\'"', html)
+                url = url.group(1) + par
+                html = get_url(url, headers=headers)
+                
+                encoded = re.search("eval\(unescape\(.+?\) \+ '(.+?)'", html)
+                if encoded:
+                    function = urllib.unquote(re.search('eval\(unescape\(\'(.+?)\'\)\);', html).group(1))
+                    split_val = re.search('split\("(.+?)"\);', function)
+                    added_val = re.search('unescape\(.+ \+ "(.+?)"', function)
+                    minus_val = re.search('charCodeAt\(i\)\)\+\-([0-9]+)\);', function)
+                    html = decode_text(encoded.group(1), split_val.group(1), added_val.group(1), minus_val.group(1))
+                
+                swfPlayer = 'http://www.tgun.tv/menus/players/jwplayer/jwplayer.flash.swf'
+                streamer = re.search("file: '(.+?)'", html)
+                playPath = par
+                stream_url = ''.join([streamer.group(1) + par,
+                               ' playpath=', playPath,
+                               ' pageURL=', url,
+                               ' swfUrl=', swfPlayer,
+                               ' live=true'])
+            except Exception, e:
+                addon.log('Unable to parse TGUN owned stream: %s' % e)
+                Notify('small','TGUN', 'Failed to resolve TGUN owned stream','')                
         else:
             Notify('small','Undefined Stream', 'Channel is using an unknown stream type','')
             stream_url = None
@@ -415,41 +482,29 @@ if play:
 
 def tvchannels(turl = url, tpage = page_num):
     #turl = turl % tpage
-    print 'Retrieving: %s' % turl
-    html = net.http_GET(turl).content
-    print html
-
-    #tpage = int(tpage) 
-    #if tpage > 1:
-    #    addon.add_directory({'mode': 'mainexit'}, {'title': '[COLOR red]Back to Main Menu[/COLOR]'}, img=icon_path + 'back_arrow.png')
-
-    #if tpage < num_showpages:
-    #    tpage = tpage +  1
-    #    addon.add_directory({'mode': 'tvchannels', 'url': showlist_url, 'page_num': tpage}, {'title': '[COLOR blue]Next Page[/COLOR]'}, img=icon_path + 'next_arrow.png')
+    html = get_url(turl)
 
     #Remove any commented out sources to we don't try to use them
     html = re.sub('(?s)<!--.*?-->', '', html).strip()
     
-    #match = re.compile('<a Title="" href="#" onClick="Chat=window.open\(\'(.+?)\',\'img_m\',\'\'\); return false;"><img border="0" src="(.+?)" style="filter:alpha \(opacity=50\); -moz-opacity:0.5" onMouseover="lightup\(this, 100\)" onMouseout="lightup\(this, 30\)" width="110" height="80"></a>(.+?)</td>').findall(html)
-    match = re.compile('<a Title="(.+?)" href="#" onClick="Chat=window.open\(\'(.+?)\',\'vid_z\',\'\'\); return false;"><img src="(.+?)" border="1" width=120 height=90 /></a>').findall(html)
+    match = re.compile('<a Title="(.+?)" href="#" onClick="Chat=window.open\(\'(.+?)\',\'vid_z\',\'\'\); return false;"><img src="(.+?)" border="1" width=[0-9]+ height=[0-9]+ /></a>').findall(html)
     if not match:
         match = re.compile('<a Title=".*" href="(.+?)" target="img_m"><img border="0" src="(.+?)" style="filter:alpha[ \(opacity=50\)]*; -moz-opacity:0.5" onMouseover="lightup\(this, 100\)" onMouseout="lightup\(this, 30\)" width="110" height="80"></a>(.+?)</td>').findall(html)
-    #for link, thumb, name in match:
     for name, link, thumb in match:
         if not re.search('http://', thumb):
             thumb = main_url + thumb
-        if re.search('http://www.tgun.tv/menus/players/playerindex[0-9]*.php', link):
+        if re.search('http://www.tgun.tv/menus/players/dlock/playerindex[0-9]*.php', link):
             name = name + '[COLOR blue]*[/COLOR]'
         addon.add_video_item({'mode': 'channel', 'url': link}, {'title': name}, img=thumb)
 
     
 def mainmenu():
     #tvchannels(showlist_url, 1)
-    whatismyip = "http://icanhazip.com/"
-    print urllib2.urlopen(whatismyip).readlines()[0]
+    #whatismyip = "http://icanhazip.com/"
+    #addon.log(urllib2.urlopen(whatismyip).readlines()[0])
     addon.add_directory({'mode': 'tvchannels', 'url': showlist_url, 'page_num': 1}, {'title': 'Live TV Shows & Movies'}, img=icon_path + 'newtv.png')
     addon.add_directory({'mode': 'classics', 'url': classic_shows_url % 1, 'page_num': 1}, {'title': 'Classic TV Shows'}, img=icon_path + 'retrotv.png')
-    addon.add_directory({'mode': 'livetv', 'url': livetv_pages % 1, 'page_num': 1}, {'title': 'Live TV Channels'}, img=icon_path + 'livetv.png')
+    #addon.add_directory({'mode': 'livetv', 'url': livetv_pages % 1, 'page_num': 1}, {'title': 'Live TV Channels'}, img=icon_path + 'livetv.png')
 
 
 if mode == 'main':
@@ -466,8 +521,7 @@ elif mode == 'tvchannels':
 
 
 elif mode == 'classics':
-    print 'Retrieving: %s' % url
-    html = net.http_GET(url).content
+    html = get_url(url)
 
     page = int(page_num)    
     if page > 1:
@@ -485,8 +539,7 @@ elif mode == 'classics':
 
 
 elif mode == 'livetv':
-    print 'Retrieving: %s' % url
-    html = net.http_GET(url).content
+    html = get_url(url)
 
     page = int(page_num)    
     if page > 1:
