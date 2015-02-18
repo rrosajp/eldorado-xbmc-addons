@@ -387,7 +387,7 @@ def decode_text(s, split_val, added_val, minus_val):
 
     i = 0
     for letter in s:
-        r = r + chr(int(int(k[i % len(k)]) ^ ord(s[i])) + - int(minus_val))
+        r = r + chr(int(int(k[i % len(k)]) ^ ord(s[i])) + int(minus_val))
         i = i + 1
 
     return r
@@ -457,7 +457,7 @@ if play:
                     function = urllib.unquote(re.search('eval\(unescape\(\'(.+?)\'\)\);', html).group(1))
                     split_val = re.search('split\("(.+?)"\);', function)
                     added_val = re.search('unescape\(.+ \+ "(.+?)"', function)
-                    minus_val = re.search('charCodeAt\(i\)\)\+\-([0-9]+)\);', function)
+                    minus_val = re.search('charCodeAt\(i\)\)([\+|-][0-9]+)\);', function)
                     html = decode_text(encoded.group(1), split_val.group(1), added_val.group(1), minus_val.group(1))
                 
                 swfPlayer = 'http://www.tgun.tv/menus/players/jwplayer/jwplayer.flash.swf'
