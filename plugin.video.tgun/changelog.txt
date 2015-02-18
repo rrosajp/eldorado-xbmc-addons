@@ -1,3 +1,6 @@
+[B]v1.2.1 (Wednesday, 18 February 2015):[/B]
+ - Fixed TGUN stream regex
+
 [B]v1.2.0 (Thursday, 12 February 2015):[/B]
   - Updated to work with all current streams
 
