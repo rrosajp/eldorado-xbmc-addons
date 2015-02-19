@@ -3,8 +3,8 @@ import urllib, urllib2
 import re, string
 import os
 from urlparse import urlparse
-from t0mm0.common.addon import Addon
-from t0mm0.common.net import Net
+from addon.common.addon import Addon
+from addon.common.net import Net
 net = Net()
 
 try:
