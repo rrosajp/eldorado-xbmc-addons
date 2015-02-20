@@ -1,3 +1,16 @@
+[B]v1.3.0 (Friday, 20 February 2015):[/B]
+ - More fixes to TGUN owned streams
+ - Added URL caching
+ 
+[B]v1.2.2 (Thursday, 19 February 2015):[/B]
+ - Fixed addon.common import error
+
+[B]v1.2.1 (Wednesday, 18 February 2015):[/B]
+ - Fixed TGUN stream regex
+
+[B]v1.2.0 (Thursday, 12 February 2015):[/B]
+  - Updated to work with all current streams
+
 [B]v0.0.94 (Tuesday, 03 December 2013):[/B]
   - Updated swf url for tgun based streams - AGAIN
   

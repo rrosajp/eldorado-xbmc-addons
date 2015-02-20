@@ -1,3 +1,7 @@
+[B]v1.3.0 (Friday, 20 February 2015):[/B]
+ - More fixes to TGUN owned streams
+ - Added URL caching
+ 
 [B]v1.2.2 (Thursday, 19 February 2015):[/B]
  - Fixed addon.common import error
 
