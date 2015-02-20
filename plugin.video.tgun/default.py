@@ -1,20 +1,30 @@
 import xbmc, xbmcgui
 import urllib, urllib2
 import re, string
-import os
+import os, time
+import traceback
 from urlparse import urlparse
 from addon.common.addon import Addon
 from addon.common.net import Net
 net = Net()
 
+
+addon_id = 'plugin.video.tgun'
+
+#Common Cache
+# plugin constants
+dbg = False # Set to false if you don't want debugging
+
+#Common Cache
 try:
-    import json
-except:
-    import simplejson as json
+  import StorageServer
+except Exception, e:
+  import storageserverdummy as StorageServer
+cache = StorageServer.StorageServer(addon_id)
 
 
 ##### XBMC  ##########
-addon = Addon('plugin.video.tgun', sys.argv)
+addon = Addon(addon_id, sys.argv)
 datapath = addon.get_profile()
 
 
@@ -71,8 +81,20 @@ def Notify(typeq, title, message, times, line2='', line3=''):
           dialog.ok(' '+title+' ', ' '+message+' ')
 
 
-def get_url(url, data=None, headers=None):
+def get_url(url, data=None, headers=None, use_cache=True, cache_limit=8):
 
+    html = ''
+    if use_cache:
+        created = cache.get('timestamp_' + url)
+        if created:
+            age = time.time() - float(created)
+            limit = 60 * 60 * cache_limit
+            if age < limit:
+                html = cache.get(url)
+                if html:
+                    addon.log_debug('Cache URL data found for: %s' % url)
+                    return html
+    
     addon.log('Retrieving: %s' % url)
     if data:
         if headers:
@@ -84,10 +106,14 @@ def get_url(url, data=None, headers=None):
             html = net.http_GET(url, headers=headers).content
         else:
             html = net.http_GET(url).content
-        
+
+    if use_cache:            
+        cache.set(url, html)
+        cache.set('timestamp_' + url, str(time.time()))
+
     return html
-    
-    
+
+
 def sys_exit():
     xbmc.executebuiltin("XBMC.Container.Update(addons://sources/video/plugin.video.tgun?mode=main,replace)")
     return
@@ -307,25 +333,25 @@ def zerocast(embedcode, url):
         zero_url = re.search('var url = \'(.+?)\';', html).group(1)
         html = get_url(zero_url, headers=headers)
         
-        token_url = re.search('getJSON\("(.+?)",', html).group(1)
-        token_html = get_url(token_url, headers=headers)
-        token=re.compile('{"token":"(.+?)"}').findall(token_html)[0]
+        #token_url = re.search('getJSON\("(.+?)",', html).group(1)
+        #token_html = get_url(token_url, headers=headers)
+        #token=re.compile('{"token":"(.+?)"}').findall(token_html)[0]
         
-        rtmp = re.search('file: "(.+?)",', html).group(1)
-        playPath = re.search('rtmp://[\.\w:]*/[^\s]+/([^\s]+)', rtmp).group(1)
+        #rtmp = re.search('file: "(.+?)",', html).group(1)
+        playPath = re.search('file\', \'(.+?)\'\);', html).group(1)
         
         rtmpUrl = ''.join(['rtmpe://207.244.74.135:1935/goLive',
         ' playpath=', playPath,
         ' pageURL=', zero_url,
         ' swfUrl=', 'http://cdn.zerocast.tv/player/jwplayer.flash.swf',
-        ' token=', token,
+        #' token=', token,
         ' live=true'])
         
         addon.log(rtmpUrl)
         return rtmpUrl
         
     except Exception, e:
-        addon.log_error('Failed to resolve Vaughn Live: %s' % e)
+        addon.log_error('Failed to resolve Zerocast: %s' % e)
         return None
 
 def playerindex(embedcode):
@@ -347,7 +373,10 @@ def get_embed(html):
 
 
 def determine_stream(embedcode, url):
-    if re.search('vaughnlive.tv', embedcode):
+    if re.search('/playerindex[0-9]*.php', html) or re.search('http://www.tgun.tv/embeds2/index[0-9]*.html\?', html):
+        addon.log_debug('TGUN Stream')
+        stream_url = tgun_stream(embedcode)
+    elif re.search('vaughnlive.tv', embedcode):
         addon.log_debug('vaughnlive.tv')
         stream_url = vaughnlive(embedcode, url)
     elif re.search('zerocast.tv', embedcode):
@@ -391,90 +420,97 @@ def decode_text(s, split_val, added_val, minus_val):
         i = i + 1
 
     return r
+
+
+def tgun_stream(html):
  
- 
+    try:
+        url = re.search('<iframe src="(.+?)\'\+channel\+\'"', html)
+        url = url.group(1) + par
+        html = get_url(url, headers=headers)
+        
+        function = urllib.unquote(re.search('eval\(unescape\(\'(.+?)\'\)\);', html).group(1))
+        addon.log_debug('TGUN Function: %s' % function)
+        split_val = re.search('split\("(.+?)"\);', function)
+        added_val = re.search('unescape\(.+ \+ "(.+?)"', function)
+        minus_val = re.search('charCodeAt\(i\)\)[\+|-]([\+|-]*[0-9])\);', function)
+        
+        encoded = re.search("eval\(unescape\(.+?\) \+ '(.+?)'", html).group(1)
+        html = decode_text(encoded, split_val.group(1), added_val.group(1), minus_val.group(1))
+        addon.log_debug('TGUN Decoded HTML: %s' % html)
+        
+        swfPlayer = 'http://www.tgun.tv/menus/players/jwplayer/jwplayer.flash.swf'
+        streamer = re.search("file: '(.+?)'", html)
+        playPath = par
+        stream_url = ''.join([streamer.group(1) + par,
+                       ' playpath=', playPath,
+                       ' pageURL=', url,
+                       ' swfUrl=', swfPlayer,
+                       ' live=true']) 
+
+        return stream_url
+    except:
+        raise('Failed to resolve TGUN owned stream')
+
+        
 if play:
 
-    #Check for channel name at the end of url
-    global par
-    par = urlparse(url).query
+    try:
     
-    #Sometimes they pass in the url we want in a url query parm, check first
-    r = re.search("((HTTP|http)://.+)", par)
-    if r:
-        url = r.group(1)
-
-    headers = {
-            'Referer': url, 'Host' : 'www.tgun.tv'
-        }        
-
-    html = get_url(url, headers=headers)
-
-    #Check for channels that have multiple stream sources
-    stream_sources = re.compile('<a style="color: #000000; text-decoration: none;padding:10px; background: #38ACEC" href="#" onClick="Chat=window.open\(\'(.+?)\',\'player\',\'\'\); return false;"><b>(.+?)</b></a>').findall(html)
-    
-    if stream_sources:
-        names = []
-        links = []
-        for link, name in stream_sources:
-            names.append(name)
-            links.append(link)
+        #Check for channel name at the end of url
+        global par
+        par = urlparse(url).query
         
-        dialog = xbmcgui.Dialog()
-        index = dialog.select('Choose a video source', names)
-        if index >= 0:
-            url = links[index]
-            par = urlparse(url).query
-            if par.startswith('http://'):
-                url = par
-            html = get_url(url)
+        #Sometimes they pass in the url we want in a url query parm, check first
+        r = re.search("((HTTP|http)://.+)", par)
+        if r:
+            url = r.group(1)
 
-    #Remove any commented out sources to we don't try to use them
-    embedcode = re.sub('(?s)<!--.*?-->', '', html).strip()
-    #html = re.sub('(?s)<!--.*?-->', '', html).strip()
+        headers = {
+                'Referer': url, 'Host' : 'www.tgun.tv'
+            }        
 
-    if re.search('/playerindex[0-9]*.php', html) or re.search('http://www.tgun.tv/embeds2/index[0-9]*.html\?', html):
-        embedcode = ''
+        html = get_url(url, headers=headers)
 
-    if re.search('http://tgun.tv/embed/', embedcode):
-        link = re.search('src="(.+?)"', embedcode).group(1)
-        embedcode = get_url(link)
-        embedcode = re.sub('(?s)<!--.*?-->', '', embedcode).strip()
+        #Check for channels that have multiple stream sources
+        stream_sources = re.compile('<a style="color: #000000; text-decoration: none;padding:10px; background: #38ACEC" href="#" onClick="Chat=window.open\(\'(.+?)\',\'player\',\'\'\); return false;"><b>(.+?)</b></a>').findall(html)
+        
+        #Prompt user to select channel stream #
+        if stream_sources:
+            names = []
+            links = []
+            for link, name in stream_sources:
+                names.append(name)
+                links.append(link)
+            
+            dialog = xbmcgui.Dialog()
+            index = dialog.select('Choose a video source', names)
+            if index >= 0:
+                url = links[index]
+                par = urlparse(url).query
+                if par.startswith('http://'):
+                    url = par
+                html = get_url(url)
 
-    stream_url = determine_stream(embedcode, url)
-    
-    if not stream_url:
-        #If can't find anything assume it's TGUN owned stream and parse
-        if not embedcode or re.search('document.write\(unescape', html):
-            print 'here2'
-            try:
-                url = re.search('<iframe src="(.+?)\'\+channel\+\'"', html)
-                url = url.group(1) + par
-                html = get_url(url, headers=headers)
-                
-                encoded = re.search("eval\(unescape\(.+?\) \+ '(.+?)'", html)
-                if encoded:
-                    function = urllib.unquote(re.search('eval\(unescape\(\'(.+?)\'\)\);', html).group(1))
-                    split_val = re.search('split\("(.+?)"\);', function)
-                    added_val = re.search('unescape\(.+ \+ "(.+?)"', function)
-                    minus_val = re.search('charCodeAt\(i\)\)([\+|-][0-9]+)\);', function)
-                    html = decode_text(encoded.group(1), split_val.group(1), added_val.group(1), minus_val.group(1))
-                
-                swfPlayer = 'http://www.tgun.tv/menus/players/jwplayer/jwplayer.flash.swf'
-                streamer = re.search("file: '(.+?)'", html)
-                playPath = par
-                stream_url = ''.join([streamer.group(1) + par,
-                               ' playpath=', playPath,
-                               ' pageURL=', url,
-                               ' swfUrl=', swfPlayer,
-                               ' live=true'])
-            except Exception, e:
-                addon.log('Unable to parse TGUN owned stream: %s' % e)
-                Notify('small','TGUN', 'Failed to resolve TGUN owned stream','')                
-        else:
-            Notify('small','Undefined Stream', 'Channel is using an unknown stream type','')
+        #Remove any commented out sources to we don't try to use them
+        embedcode = re.sub('(?s)<!--.*?-->', '', html).strip()
+        #html = re.sub('(?s)<!--.*?-->', '', html).strip()
+
+        if re.search('http://tgun.tv/embed/', embedcode):
+            link = re.search('src="(.+?)"', embedcode).group(1)
+            embedcode = get_url(link)
+            embedcode = re.sub('(?s)<!--.*?-->', '', embedcode).strip()
+
+        stream_url = determine_stream(embedcode, url)
+        
+        if not stream_url:
+            raise('Channel is using an unknown stream type')
             stream_url = None
 
+    except Exception, e:
+        traceback.print_exc()
+        Notify('small','TGUN', str(e),'')    
+            
     #Play the stream
     if stream_url and stream_url <> "Offline":
         addon.resolve_url(stream_url)
