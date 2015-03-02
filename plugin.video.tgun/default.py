@@ -197,19 +197,21 @@ def mediaplayer(embedcode):
     return re.search('Ref1=(.+?.asf)', html).group(1)
 
 
-def ilive(embedcode):
+def streamlive(embedcode):
     
-    #channel = re.search('<script type="text/javascript" src="http://www.ilive.to/embed/(.+?)&width=.+?"></script>', embedcode)
+    #channel = re.search('<script type="text/javascript" src="http://www.streamlive.to/embed/(.+?)&width=.+?"></script>', embedcode)
     channel = par
     addon.log(channel)
     headers = {
-            'Referer': 'http://www.ilive.to/'
+            'Referer': 'http://www.streamlive.to/',
+            'Host': 'www.streamlive.to',
+            'Origin': 'www.streamlive.to'
         }
     
     if channel:
-        #url = 'http://www.ilive.to/embedplayer.php?channel=%s' % channel.group(1)
-        url = 'http://www.ilive.to/embedplayer.php?channel=%s' % channel
-        html = get_url(url)
+        #url = 'http://www.streamlive.to/embedplayer.php?channel=%s' % channel.group(1)
+        url = 'http://www.streamlive.to/embedplayer.php?channel=%s' % channel
+        html = get_url(url, headers=headers)
         
         token_url=re.compile('''.*getJSON\("([^'"]+)".*''').findall(html)[0]
         if not token_url.startswith('http'):
@@ -223,10 +225,10 @@ def ilive(embedcode):
         rtmp = rtmp.replace("\\", "")
         app = re.search('rtmp://[\.\w:]*/([^\s]+)', rtmp).group(1)
     else:
-        filename = re.search('streamer=rtmp://live.ilive.to/edge&file=(.+?)&autostart=true&controlbar=bottom"', embedcode).group(1)
-        url = 'http://www.ilive.to/embedplayer.php'
+        filename = re.search('streamer=rtmp://live.streamlive.to/edge&file=(.+?)&autostart=true&controlbar=bottom"', embedcode).group(1)
+        url = 'http://www.streamlive.to/embedplayer.php'
 
-    swf = 'http://player.ilive.to/ilive-plugin.swf'
+    swf = 'http://player.streamlive.to/streamlive-plugin.swf'
     return rtmp + ' playPath=' + filename + ' swfUrl=' + swf + ' swfVfy=true live=true token=' + token + ' app=' + app + ' pageUrl=' + url
 
 
@@ -328,23 +330,29 @@ def zerocast(embedcode, url):
         }
     
     try:
-        zero_url = re.search('src="(.+?)"></script>', embedcode).group(1)
-        html = get_url(zero_url, headers=headers)
-        zero_url = re.search('var url = \'(.+?)\';', html).group(1)
-        html = get_url(zero_url, headers=headers)
+        zero_url = re.search('src="(.+?)"></script>', embedcode)
+        final_url = url
+        if zero_url and re.search('zerocast', zero_url.group(1)):
+            html = get_url(zero_url.group(1), headers=headers)
+            final_url = re.search('var url = \'(.+?)\';', html).group(1)
+            
+        html = get_url(final_url, headers=headers)
         
-        #token_url = re.search('getJSON\("(.+?)",', html).group(1)
-        #token_html = get_url(token_url, headers=headers)
-        #token=re.compile('{"token":"(.+?)"}').findall(token_html)[0]
+        token_url = re.search('getJSON\("(.+?)",', html).group(1)
+        token_html = get_url(token_url, headers=headers)
+        token=re.compile('{"token":"(.+?)"}').findall(token_html)[0]
         
         #rtmp = re.search('file: "(.+?)",', html).group(1)
-        playPath = re.search('file\', \'(.+?)\'\);', html).group(1)
+        #playPath = re.search('file\', \'(.+?)\'\);', html).group(1)
+        
+        file = re.search('file: \' (.+?)\',', html).group(1)
+        playPath = re.search('rtmp://[\.\w:]*/.+/([^\s]+)', file).group(1)
         
         rtmpUrl = ''.join(['rtmpe://207.244.74.135:1935/goLive',
         ' playpath=', playPath,
-        ' pageURL=', zero_url,
+        ' pageURL=', final_url,
         ' swfUrl=', 'http://cdn.zerocast.tv/player/jwplayer.flash.swf',
-        #' token=', token,
+        ' token=', token,
         ' live=true'])
         
         addon.log(rtmpUrl)
@@ -352,8 +360,39 @@ def zerocast(embedcode, url):
         
     except Exception, e:
         addon.log_error('Failed to resolve Zerocast: %s' % e)
-        return None
+        raise
 
+
+def livegome(embedcode, url):
+    headers = {
+            'Referer': url, 'Host' : 'www.livego.me'
+        }
+    
+    try:
+         
+        html = get_url(url, headers=headers)
+        
+        token_url = re.search('getJSON\("(.+?)",', html).group(1)
+        token_html = get_url(token_url, headers=headers)
+        token=re.compile('{"token":"(.+?)"}').findall(token_html)[0]
+        
+        rtmp = re.search('file: \'(.+?)\',', html).group(1)
+        playPath = re.search('rtmp://[\.\w:]*/.+/([^\s]+)', rtmp).group(1)
+        
+        rtmpUrl = ''.join([rtmp,
+        ' playpath=', playPath,
+        ' pageURL=', url,
+        ' swfUrl=', 'http://p.jwpcdn.com/6/8/jwplayer.flash.swf',
+        ' token=', token,
+        ' live=true'])
+        
+        addon.log(rtmpUrl)
+        return rtmpUrl
+        
+    except Exception, e:
+        addon.log_error('Failed to resolve Livego.me: %s' % e)
+        return None
+        
 def playerindex(embedcode):
     link = re.search('iframe src="(.+?)"', embedcode).group(1)
     link = urllib2.unquote(urllib2.unquote(link))
@@ -382,6 +421,9 @@ def determine_stream(embedcode, url):
     elif re.search('zerocast.tv', embedcode):
         addon.log_debug('zerocast.tv')
         stream_url = zerocast(embedcode, url)
+    elif re.search('livego.me', embedcode):
+        addon.log_debug('livego.me')
+        stream_url = livegome(embedcode, url)        
     elif re.search('castto', embedcode):
         addon.log_debug('casto')
         stream_url = castto(embedcode, url)
@@ -394,9 +436,9 @@ def determine_stream(embedcode, url):
     elif re.search('shidurlive', embedcode):
         addon.log_debug('shidurlive')
         stream_url = shidurlive(embedcode, url)       
-    elif re.search('ilive.to', embedcode):
-        addon.log_debug('ilive')
-        stream_url = ilive(embedcode)
+    elif re.search('streamlive.to', embedcode):
+        addon.log_debug('streamlive')
+        stream_url = streamlive(embedcode)
     elif re.search('MediaPlayer', embedcode):
         stream_url = mediaplayer(embedcode)
     elif re.search('rtmp', embedcode):
@@ -450,7 +492,7 @@ def tgun_stream(html):
 
         return stream_url
     except:
-        raise('Failed to resolve TGUN owned stream')
+        raise Exception('Failed to resolve TGUN owned stream')
 
         
 if play:
@@ -504,18 +546,18 @@ if play:
         stream_url = determine_stream(embedcode, url)
         
         if not stream_url:
-            raise('Channel is using an unknown stream type')
+            raise Exception('Channel is using an unknown stream type')
             stream_url = None
 
+        #Play the stream
+        if stream_url and stream_url <> "Offline":
+            addon.resolve_url(stream_url)            
+            
     except Exception, e:
         traceback.print_exc()
         Notify('small','TGUN', str(e),'')    
-            
-    #Play the stream
-    if stream_url and stream_url <> "Offline":
-        addon.resolve_url(stream_url)
 
-
+        
 def tvchannels(turl = url, tpage = page_num):
     #turl = turl % tpage
     html = get_url(turl)
@@ -540,7 +582,7 @@ def mainmenu():
     #addon.log(urllib2.urlopen(whatismyip).readlines()[0])
     addon.add_directory({'mode': 'tvchannels', 'url': showlist_url, 'page_num': 1}, {'title': 'Live TV Shows & Movies'}, img=icon_path + 'newtv.png')
     addon.add_directory({'mode': 'classics', 'url': classic_shows_url % 1, 'page_num': 1}, {'title': 'Classic TV Shows'}, img=icon_path + 'retrotv.png')
-    #addon.add_directory({'mode': 'livetv', 'url': livetv_pages % 1, 'page_num': 1}, {'title': 'Live TV Channels'}, img=icon_path + 'livetv.png')
+    addon.add_directory({'mode': 'livetv', 'url': livetv_pages % 1, 'page_num': 1}, {'title': 'Live TV Channels'}, img=icon_path + 'livetv.png')
 
 
 if mode == 'main':
