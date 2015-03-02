@@ -1,3 +1,8 @@
+[B]v1.4.0 (Monday, 02 March 2015):[/B]
+ - Re-added Live TV Channels for now - not all will work
+ - Fixed zerocast resolving
+ - Added livego.me resolver
+ 
 [B]v1.3.0 (Friday, 20 February 2015):[/B]
  - More fixes to TGUN owned streams
  - Added URL caching
