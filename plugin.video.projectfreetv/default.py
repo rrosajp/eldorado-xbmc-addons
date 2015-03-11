@@ -440,9 +440,9 @@ if play:
             html = r.group(1)
         else:
             html = ''   
-        
+       
     #Now Add video source links
-    match = re.compile('''<a onclick=.+? href=".+?id=(.+?)" target=.+?<div>.+?(|part [0-9]* of [0-9]*)</div>.+?<span class='.*?'>(.*?)</span>.+?Host: (.+?)<br/>.+?class="report">.+?([0-9]*[0-9]%) Said Work''',re.DOTALL).findall(html)
+    match = re.compile('<a onclick=\'.+?\' href=".+?id%3D(.+?)&.+?" target=".+?<div>.+?(|part [0-9]* of [0-9]*)</div>.+?<span class=\'.*?\'>(.*?)</span>.+?Host: (.+?)<br/>.+?class="report">.+?([0-9]*[0-9]%) Said Work', re.DOTALL).findall(html)
     for linkid, vidname, load, host, working in match:
         if vidname:
            vidname = vidname.title()
