@@ -1,3 +1,6 @@
+[B]v2.2.3 (Wednesday, 11 March 2015):[/B]
+  - Correct regex for grabbing source media id
+  
 [B]v2.2.2 (Monday, 15 Dec 2014):[/B]
   - Small bug fix for allowing proper subtitles/trakt for tv episodes
 
