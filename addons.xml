@@ -51,7 +51,7 @@ Turns your XBMC into an instant free on-demand media-center. Stream and download
 
 <addon id="plugin.video.redlettermedia"
        name="Red Letter Media"
-       version="0.9.1"
+       version="0.9.2"
        provider-name="Eldorado">
   <requires>
     <import addon="xbmc.python" version="2.1.0"/>
