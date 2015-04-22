@@ -43,6 +43,7 @@ IconPath = AddonPath + "/icons/"
 # Temporary function to grab html even when encountering an error
 # Some pages on the site return 404 even though the html is there
 def get_http_error(url):
+    addon.log('--- Requesting URL: ' + str(url))
     req = urllib2.Request(url)
     req.add_header('User-Agent', net._user_agent)
     try:
@@ -79,7 +80,7 @@ if play:
     #Is a redlettermedia url, so need to find and parse video link
     else:
     
-        html = get_http_error(url)
+        html = get_url(url)
           
         #First check if there are multiple video parts on the page
         parts = re.compile('>([PARTart]* [1-9]):<br />').findall(html)
@@ -102,7 +103,7 @@ if play:
         if html:                 
         
             #Check for youtube video first
-            youtube = re.search('src="([http:]*//www.youtube.com/[v|embed]*/[0-9A-Za-z_\-]+).+?"',html)
+            youtube = re.search('src="([http:|https:]*//www.youtube.com/[v|embed]*/[0-9A-Za-z_\-]+).+?"',html)
             springboard = re.search('src="(http://cms.springboardplatform.com/.+?)"', html)
             
             if youtube:
