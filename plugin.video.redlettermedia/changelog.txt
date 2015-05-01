@@ -1,3 +1,7 @@
+[B]v0.10.0(Friday, 01 May 2015):[/B]
+  - Fixed problem where same stream plays for every link
+  - Corrected navigating to next page
+
 [B]v0.9.2(Wednesday, 22 April 2015):[/B]
   - Fixed error playing streams, updated to check for YouTube https
 

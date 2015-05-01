@@ -56,9 +56,12 @@ def get_http_error(url):
 
 
 def get_url(url):
+    headers = {
+            'Host': 'redlettermedia.com'
+        }
     addon.log('--- Requesting URL: ' + str(url))
     h = HTMLParser.HTMLParser() 
-    html = net.http_GET(MainUrl).content
+    html = net.http_GET(url, headers=headers).content
     html = h.unescape(html)
     return html.encode('utf-8')
 
