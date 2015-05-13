@@ -3,6 +3,7 @@ import urllib, urllib2
 import re, string
 import os, time
 import traceback
+import random
 from urlparse import urlparse
 from addon.common.addon import Addon
 from addon.common.net import Net
@@ -305,17 +306,25 @@ def vaughnlive(embedcode, url):
         vaughn_url = re.search('embed=embed\+\'<iframe src=\"(.+?)\'\+channel\+\'\"', embedcode).group(1) + par
         html = get_url(vaughn_url, headers=headers)
 
+        html = get_url(vaughn_url, headers=headers)
         domain = urlparse(vaughn_url).netloc
-        serverlist = re.compile('(\d+\.\d+\.\d+\.\d+\:443)').findall(html)
-        stream_hash=re.search('vsVars\d\d\d\d\d\d\d\d\d\d\.[0-9A-Za-z][0-9A-Za-z][0-9A-Za-z][0-9A-Za-z][0-9A-Za-z]+\s+=\s+"(.+?)";',html).group(1).replace("0m0", "")
-        swf_path = re.search('swfobject.embedSWF\("(/\d+/swf/[0-9A-Za-z]+\.swf)"', html).group(1)
+              
+        #serverlist = re.compile('(\d+\.\d+\.\d+\.\d+\:443)').findall(html)
+        #stream_hash=re.search('vsVars.*= "0n0(.*?)"',html).group(1)
+        swf_path = re.search('swfobject.embedSWF\("(.+?)",', html).group(1)
 
         live_tag = 'live'
         if   'instagib.' in domain: live_tag='instagib'
         elif 'vapers.'   in domain: live_tag='vapers'
         elif 'breakers.' in domain: live_tag='breakers'
         
-        rtmpUrl = "rtmp://%s/live?%s Playpath=%s_%s swfUrl=http://%s%s live=true pageUrl=http://%s/embed/video/%s?viewers=true&watermark=left&autoplay=true %s Conn=S:OK --live" % (serverlist[0], stream_hash, live_tag, par, domain, swf_path, domain, par, '')
+        mvn_url = 'http://mvn.vaughnsoft.net/video/edge/%s_%s' % (domain, par)
+        mvn_html = get_url(mvn_url, use_cache=False)
+        stream_hash = re.search('mvnkey-(.+)', mvn_html).group(1)
+        server = re.search('(.+?);', mvn_html).group(1)
+        
+        #rtmpUrl = "rtmp://%s/live?%s Playpath=%s_%s swfUrl=http://%s%s live=true pageUrl=http://%s/embed/video/%s?viewers=true&watermark=left&autoplay=true" % (random.choice(serverlist), stream_hash, live_tag, par, domain, swf_path, domain, par)
+        rtmpUrl = "rtmp://%s/live App=live?%s Playpath=%s_%s  swfUrl=http://%s%s live=true pageUrl=http://%s/embed/video/%s?viewers=true&watermark=left&autoplay=true" % (server, stream_hash, live_tag, par, domain, swf_path, domain, par)        
         
         addon.log(rtmpUrl)
         return rtmpUrl
