@@ -2,7 +2,7 @@
 <addons>
 <addon id="plugin.video.icefilms"
        name="Icefilms"
-       version="1.8.5"
+       version="1.8.6"
        provider-name="Eldorado (originator: anarchintosh)">
     <requires>
         <import addon="xbmc.python" version="2.1.0"/>
@@ -30,7 +30,7 @@ Turns your XBMC into an instant free on-demand media-center. Stream and download
 
 <addon id="plugin.video.projectfreetv"
        name="Project Free TV"
-       version="2.2.3"
+       version="2.3.0"
        provider-name="Eldorado">
   <requires>
     <import addon="xbmc.python" version="2.1.0"/>

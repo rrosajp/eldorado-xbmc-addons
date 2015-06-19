@@ -120,7 +120,8 @@ def get_html(page_url):
             opener = urllib2.build_opener(proxy_handler)
         
         urllib2.install_opener(opener)
-        
+
+    addon.log("Requesting URL: %s" % page_url)        
     html = net.http_GET(page_url).content
     
     import HTMLParser
@@ -440,7 +441,7 @@ if play:
             html = r.group(1)
         else:
             html = ''   
-       
+    
     #Now Add video source links
     match = re.compile('<a onclick=\'.+?\' href=".+?id%3D(.+?)&.+?" target=".+?<div>.+?(|part [0-9]* of [0-9]*)</div>.+?<span class=\'.*?\'>(.*?)</span>.+?Host: (.+?)<br/>.+?class="report">.+?([0-9]*[0-9]%) Said Work', re.DOTALL).findall(html)
     for linkid, vidname, load, host, working in match:
@@ -456,7 +457,8 @@ if play:
         stream_url = source.resolve()
     else:
         stream_url = False
-      
+
+        
     #Play the stream
     if stream_url:
         addon.resolve_url(stream_url)
@@ -680,6 +682,8 @@ elif mode == 'tvseasons':
     else:
         metaget=None
         
+    if url.startswith('http') == False:
+        url = MainUrl + url
     html = get_html(url)
     match = re.compile('class="mnlcategorylist"><a href="(.+?)"><b>(.+?)</b></a>(.+?)<').findall(html)
     seasons = re.compile('class="mnlcategorylist"><a href=".+?"><b>Season ([0-9]+)</b></a>.+?<').findall(html)
@@ -702,8 +706,17 @@ elif mode == 'tvseasons':
         
     num = 0
     for link, season_num, episodes in match:
-        if season_meta:
+        is_season = re.search('Season ([0-9]+)', season_num)
+        if season_meta and is_season:
             meta = season_meta[num]
+        else:
+            num = num - 1
+            meta = {}
+            meta['TVShowTitle'] = title
+            meta['cover_url'] = ''
+            meta['imdb_id'] = ''
+            meta['backdrop_url'] = ''
+            meta['overlay'] = 0
         meta['title'] = season_num + episodes
         link = url + '/' + link
         contextMenuItems = add_contextmenu(meta_setting, video_type, link, title, meta['title'], favourite=False, watched=meta['overlay'], imdb=meta['imdb_id'], season_num=seasons[num])
