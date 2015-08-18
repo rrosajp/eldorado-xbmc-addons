@@ -63,16 +63,19 @@ print '---------------------------------------------------------------'
 website_url = addon.get_setting('website_url')
 if website_url == "Custom URL":
     custom_url = addon.get_setting('custom_url')
-    if custom_url.endswith("/"):
-        MainUrl = custom_url
-    else:
-        MainUrl = custom_url + "/"
+    # if custom_url.endswith("/"):
+        # MainUrl = custom_url
+    # else:
+        # MainUrl = custom_url + "/"
+    MainUrl = custom_url
 else:
     MainUrl = website_url
 
-SearchUrl = MainUrl + 'search/?q=%s&md=%s'
-MovieUrl = MainUrl + "movies/"
-TVUrl = MainUrl + "internet/"
+SearchUrl = MainUrl + '/search/?q=%s&md=%s'
+MoviePath = "/movies/"
+MovieUrl = MainUrl + MoviePath
+TVPath = "/internet/"
+TVUrl = MainUrl + TVPath
 
 #PATHS
 AddonPath = addon.get_path()
@@ -181,7 +184,11 @@ def add_favourite():
                 Notify('small', 'Favourite Already Exists', vidname.title() + ' already exists in your PFTV favourites','')
                 return
 
-    favs.append((title, vidname, imdb_id, season, episode, url))
+    import urlparse
+    split_url = urlparse.urlsplit(url)                
+    new_url = MainUrl + split_url.path
+    
+    favs.append((title, vidname, imdb_id, season, episode, new_url))
     cache.set('favourites_' + video_type, str(favs))
     Notify('small', 'Added to favourites', vidname.title() + ' added to your PFTV favourites','')
 
@@ -190,7 +197,12 @@ def remove_favourite():
     saved_favs = cache.get('favourites_' + video_type)
     if saved_favs:
         favs = eval(saved_favs)
-        favs.remove((title, name, imdb_id, season, episode, url))
+
+        import urlparse
+        split_url = urlparse.urlsplit(url)                
+        new_url = MainUrl + split_url.path
+        
+        favs.remove((title, name, imdb_id, season, episode, new_url))
         cache.set('favourites_' + video_type, str(favs))
         xbmc.executebuiltin("XBMC.Container.Refresh")
 
@@ -436,25 +448,45 @@ if play:
     
     elif section in ('tvshows', 'episode'):
         #Search within HTML to only get portion of links specific to episode requested
-        r = re.search('<td class="episode"><a name=".+?"></a><b>%s</b>(.+?)(<a name=|<p align="center">)' % re.escape(name), html, re.DOTALL) 
+        r = re.search('<td class="episode"><b>%s</b></td>(.+?)(<tr bgcolor="#E3E3E3">|<p align="center">)' % re.escape(name), html, re.DOTALL) 
+        #r = re.search('<td class="episode"><a name=".+?"></a><b>%s</b>(.+?)(<a name=|<p align="center">)' % re.escape(name), html, re.DOTALL) 
         if r:
             html = r.group(1)
         else:
             html = ''   
     
     #Now Add video source links
-    match = re.compile('<a onclick=\'.+?\' href=".+?id%3D(.+?)&.+?" target=".+?<div>.+?(|part [0-9]* of [0-9]*)</div>.+?<span class=\'.*?\'>(.*?)</span>.+?Host: (.+?)<br/>.+?class="report">.+?([0-9]*[0-9]%) Said Work', re.DOTALL).findall(html)
-    for linkid, vidname, load, host, working in match:
-        if vidname:
-           vidname = vidname.title()
-        else:
-           vidname = 'Full'
-        media = urlresolver.HostedMediaFile(host=host, media_id=linkid, title=vidname + ' - ' + host + ' - ' + load + ' - ' + working)
-        sources.append(media)
+    match = re.compile('<a class="mnllinklist" target="_blank" href="(.+?)">.+?Loading Time: <span class=".+?">(.+?)</span>[\r\n ]*<br />[\r\n ]*Host: (.+?)[\r\n ]*<br/>.+?class="report">.+?([0-9]*[0-9]%) Said Work', re.DOTALL).findall(html)
+    #match = re.compile('<a onclick=\'.+?\' href=".+?id%3D(.+?)&.+?" target=".+?<div>.+?(|part [0-9]* of [0-9]*)</div>.+?<span class=\'.*?\'>(.*?)</span>.+?Host: (.+?)<br/>.+?class="report">.+?([0-9]*[0-9]%) Said Work', re.DOTALL).findall(html)
+    links = []
+    for link, load, host, working in match:
+    #for linkid, vidname, load, host, working in match:
+        # if vidname:
+           # vidname = vidname.title()
+        # else:
+           # vidname = 'Full'
+        vidname = 'Full'           
+        #media = urlresolver.HostedMediaFile(host=host, media_id=linkid, title=vidname + ' - ' + host + ' - ' + load + ' - ' + working)
+        #sources.append(media)
+        
+        sources.append(vidname + ' - ' + host + ' - ' + load + ' - ' + working)
+        links.append(link)
+
+    dialog = xbmcgui.Dialog()
+    index = dialog.select('Choose your stream:', sources)
+
+    source = None
+    if index > -1:
+        html = get_html(MainUrl + links[index])
+        link = re.search('src="(.+?)".+?></iframe>', html, re.IGNORECASE)
+        
+        if link:
+            source=link.group(1)
     
-    source = urlresolver.choose_source(sources)
+    #source = urlresolver.choose_source(sources)
+
     if source:
-        stream_url = source.resolve()
+        stream_url = urlresolver.resolve(source)
     else:
         stream_url = False
 
@@ -604,21 +636,23 @@ elif mode == 'tvseries_upc':
     url = TVUrl
     html = get_html(url)
 
-    html = re.search('<link rel="stylesheet" href="/resources/css/schedule1.css" type="text/css">(.+?)</table><script>', html, re.DOTALL)
+    html = re.search('<link rel="stylesheet" href="/css/schedule1.css" type="text/css">(.+?)</table>', html, re.DOTALL)
     if html:
         today = False
-        sched_match = re.compile('<td class="(schedule [ today]*)" width="14%">[\r\n\t]*<span class="sheader">(.+?)</span>[\r\n\t]*<span class="sdate">(.+?)</span>(.+?)</td>', re.DOTALL).findall(html.group(1))
+        sched_match = re.compile('<td width="14%" class="(schedule[ today]*)">[\r\n\t ]*<span class="sheader">(.+?)</span>[\r\n\t ]*<span class="sdate">(.+?)</span>(.+?)</td>', re.DOTALL).findall(html.group(1))
         for schedule, day, date, episodes in sched_match:
             
-            if schedule == 'schedule  today':
+            if schedule == 'schedule today':
                 today = True
                 addon.add_directory({'mode': 'none'}, {'title': '[COLOR red] %s %s[/COLOR]' % (day.strip(), date.strip())}, is_folder=False, img='')
-            elif not schedule == 'schedule  today' and today:
+            elif not schedule == 'schedule today' and today:
                 addon.add_directory({'mode': 'none'}, {'title': '[COLOR blue] %s %s[/COLOR]' % (day.strip(), date.strip())}, is_folder=False, img='')
             
             if today:
-                ep_match = re.compile('<a href=\'/(.+?)\' title="(.+? S([0-9]+)E([0-9]+) .+?)" class=\'epp\'>(.+?)</a>').findall(episodes)
-                for link, vidname, season_num, episode_num, vidtitle in ep_match:
+                #ep_match = re.compile('<a href=\'/(.+?)\' title="(.+? S([0-9]+)E([0-9]+) .+?)" class=\'epp\'>(.+?)</a>').findall(episodes)
+                ep_match = re.compile('<a class="epp" href="(.+?)">(.+?)</a>').findall(episodes)
+                #for link, vidname, season_num, episode_num, vidtitle in ep_match:
+                for link, vidtitle in ep_match:
     
                     #Since we are getting season level items, try to grab the imdb_id of the TV Show first to make meta get easier
                     if meta_setting:
@@ -628,8 +662,8 @@ elif mode == 'tvseries_upc':
                         imdb = ''
                     
                     #They give a link to the show, but not the correct season, let's fix that
-                    new_url = MainUrl + link + 'season_' + str(int(season_num)) + '.html'
-                    add_video_directory('tvepisodes', VideoType_Season, new_url, vidtitle, vidname, metaget=metaget, imdb=imdb, season_num=season_num, totalitems=(len(sched_match) * len(ep_match)))
+                    #new_url = MainUrl + link + 'season_' + str(int(season_num)) + '.html'
+                    add_video_directory('tvseasons', VideoType_Season, MainUrl + link, vidtitle, vidtitle, metaget=metaget, imdb=imdb, totalitems=(len(sched_match) * len(ep_match)))
     setView('seasons', 'season-view')
 
 
@@ -641,13 +675,13 @@ elif mode == 'tvlastadded':
         metaget=None
         
     html = get_html(url)
-    full_match = re.compile('class="mnlcategorylist"><a href="(.+?)#.+?"><b>((.+?) - Season ([0-9]+) Episode ([0-9]+)) <').findall(html)
-    match = re.compile('<a name="(.+?)"></a>(.+?)(<td colspan="2">|</table>)', re.DOTALL).findall(html)
-    for added_date, inside_html, endtag in match:
+    #full_match = re.compile('class="mnlcategorylist"><a href="(.+?)#.+?"><b>((.+?) - Season ([0-9]+) Episode ([0-9]+)) <').findall(html)
+    full_match = re.compile('class="mnlcategorylist">[\r\n ]*<a href="(.+?)[#]*.*?">[\r\n ]*<b>((.+?) - Season ([0-9]+) Episode ([0-9]+))<', re.DOTALL).findall(html)
+    match = re.compile('<a name="*(.+?)"></a>(.+?)(?:<td colspan="2">|</table>)', re.DOTALL).findall(html)
+    for added_date, inside_html in match:
         addon.add_directory({'mode': 'none'}, {'title': '[COLOR blue]' + added_date + '[/COLOR]'}, is_folder=False, img='')
-        inside_match = re.compile('class="mnlcategorylist"><a href="(.+?)#.+?"><b>((.+?) [\(]*([0-9]{0,4})[\) ]*- Season ([0-9]+) Episode ([0-9]+)) <').findall(inside_html)
+        inside_match = re.compile('class="mnlcategorylist">[\r\n ]*<a href="(.+?)">[\r\n ]*<b>((.+?) [\(]*([0-9]{0,4})[\) ]*- Season ([0-9]+) Episode ([0-9]+))<').findall(inside_html)
         for link, vidname, vidtitle, year, season_num, episode_num in inside_match:
-
             #Since we are getting season level items, try to grab the imdb_id of the TV Show first to make meta get easier
             if meta_setting:
                 meta = get_metadata(VideoType_TV, vidtitle, metaget=metaget, year=year)
@@ -655,7 +689,17 @@ elif mode == 'tvlastadded':
             else:
                 imdb = ''
 
-            add_video_directory('tvepisodes', VideoType_Season, TVUrl + link, vidtitle, vidname, metaget=metaget, imdb=imdb, season_num=season_num, totalitems=len(full_match))
+            #They give a link to the show, but not always to the correct season, let's fix that
+            import urlparse
+            split_url = urlparse.urlsplit(link)        
+            if not split_url.fragment:
+                link = link + '/season_' + str(int(season_num)) + '.html'
+            
+            if link.startswith(TVPath):
+                newLink = MainUrl + link
+            else:
+                newLink = TVUrl + link
+            add_video_directory('tvepisodes', VideoType_Season, newLink, vidtitle, vidname, metaget=metaget, imdb=imdb, season_num=season_num, totalitems=len(full_match))
     setView('seasons', 'season-view')    
 
 
@@ -685,8 +729,8 @@ elif mode == 'tvseasons':
     if url.startswith('http') == False:
         url = MainUrl + url
     html = get_html(url)
-    match = re.compile('class="mnlcategorylist"><a href="(.+?)"><b>(.+?)</b></a>(.+?)<').findall(html)
-    seasons = re.compile('class="mnlcategorylist"><a href=".+?"><b>Season ([0-9]+)</b></a>.+?<').findall(html)
+    match = re.compile('class="mnlcategorylist">.*?<a href="(.+?)"><b>(.+?)</b></a>(.+?)<', re.DOTALL).findall(html)
+    seasons = re.compile('class="mnlcategorylist">.*?<a href=".+?"><b>Season ([0-9]+)</b></a>.+?<', re.DOTALL).findall(html)
     #seasons = list(xrange(len(match)))
     
     #If we have more matches than seasons found then we might have an extra 'special' season, add it as Season '0'
@@ -718,7 +762,7 @@ elif mode == 'tvseasons':
             meta['backdrop_url'] = ''
             meta['overlay'] = 0
         meta['title'] = season_num + episodes
-        link = url + '/' + link
+        link = MainUrl + link
         contextMenuItems = add_contextmenu(meta_setting, video_type, link, title, meta['title'], favourite=False, watched=meta['overlay'], imdb=meta['imdb_id'], season_num=seasons[num])
         addon.add_directory({'mode': 'tvepisodes', 'url': link, 'video_type': VideoType_Season, 'imdb_id': meta['imdb_id'], 'title': title, 'name': meta['title'], 'season': seasons[num]}, meta, contextmenu_items=contextMenuItems, context_replace=True, img=meta['cover_url'], fanart=meta['backdrop_url'], total_items=len(match))
         num = num + 1
@@ -733,8 +777,10 @@ elif mode == 'tvepisodes':
         
     html = get_html(url)
 
-    match = re.compile('<td class="episode"><a name=".+?"></a>(.*?)<b>(.+?)</b></td>[\r\n\t]*(<td align="right".+?Air Date: (.*?)</div>)*', re.DOTALL).findall(html)
-    for next_episode, vidname, empty, next_air in match:
+    match = re.compile('<td class="episode">(.*?)<b>(.+?)</b></td>[\r\n ]*<td align="right" class="mnllinklist">[\r\n ]*<div class="right">.+Air Date: (.+?)</div>').findall(html)
+    #match = re.compile('<td class="episode">.*?<a name=".+?"></a>(.*?)<b>(.+?)</b></td>[\r\n\t]*(<td align="right".+?Air Date: (.*?)</div>)*', re.DOTALL).findall(html)
+    for next_episode, vidname, next_air in match:
+        print vidname
         episode_num = re.search('([0-9]{0,2})\.', vidname)
         if episode_num:
             episode_num = episode_num.group(1)
@@ -816,14 +862,18 @@ elif mode == 'search':
         url = SearchUrl % (search_quoted, section)
         html = get_html(url)
         
-        match = re.compile('<td width="97%" class="mnlcategorylist">[\r\n\t]*<a href="(.+?)">[\r\n\t]*<b>(.+?)[ (]*([0-9]{0,4})[)]*</b>').findall(html)
+        #match = re.compile('<td width="97%" class="mnlcategorylist">[\r\n\t]*<a href="(.+?)">[\r\n\t]*<b>(.+?)[ (]*([0-9]{0,4})[)]*</b>').findall(html)
+        match = re.compile('<td width="99%" class="mnlcategorylist"><a href="(.+?)"><b>(.+?)</b></a>').findall(html)
         if match:
-            for link, vidname, year in match:
+            #for link, vidname, year in match:
+            for link, vidname in match:
                 link = MainUrl + link
                 if re.search('/movies/', link):
-                    add_video_item(VideoType_Movies, VideoType_Movies, link, vidname, vidname, metaget=metaget, year=year, totalitems=len(match))
+                    #add_video_item(VideoType_Movies, VideoType_Movies, link, vidname, vidname, metaget=metaget, year=year, totalitems=len(match))
+                    add_video_item(VideoType_Movies, VideoType_Movies, link, vidname, vidname, metaget=metaget, totalitems=len(match))
                 else:
-                    add_video_directory('tvseasons', VideoType_TV, link, vidname, vidname, metaget=metaget, year=year, totalitems=len(match))
+                    #add_video_directory('tvseasons', VideoType_TV, link, vidname, vidname, metaget=metaget, year=year, totalitems=len(match))
+                    add_video_directory('tvseasons', VideoType_TV, link, vidname, vidname, metaget=metaget, totalitems=len(match))
         else:
             Notify('small', 'No Results', 'No search results found','')
     setView(None, 'default-view')
@@ -845,12 +895,17 @@ elif mode == 'favourites':
     if saved_favs:
         favs = sorted(eval(saved_favs), key=lambda fav: fav[1])
         for fav in favs:
+            
+            import urlparse
+            split_url = urlparse.urlsplit(fav[5])                
+            new_url = MainUrl + split_url.path
+            
             if video_type in (VideoType_Movies, VideoType_Episode):
-                add_video_item(video_type, video_type, fav[5], fav[0], fav[1], metaget=metaget, imdb=fav[2], season_num=fav[3], episode_num=fav[4], totalitems=len(favs), favourite=True)
+                add_video_item(video_type, video_type, new_url, fav[0], fav[1], metaget=metaget, imdb=fav[2], season_num=fav[3], episode_num=fav[4], totalitems=len(favs), favourite=True)
             elif video_type == VideoType_TV:
-                add_video_directory('tvseasons', video_type, fav[5], fav[0], fav[1], metaget=metaget, imdb=fav[2], season_num=fav[3], totalitems=len(favs), favourite=True)
+                add_video_directory('tvseasons', video_type, new_url, fav[0], fav[1], metaget=metaget, imdb=fav[2], season_num=fav[3], totalitems=len(favs), favourite=True)
             elif video_type == VideoType_Season:
-                add_video_directory('tvepisodes', video_type, fav[5], fav[0], fav[1], metaget=metaget, imdb=fav[2], season_num=fav[3], totalitems=len(favs), favourite=True)
+                add_video_directory('tvepisodes', video_type, new_url, fav[0], fav[1], metaget=metaget, imdb=fav[2], season_num=fav[3], totalitems=len(favs), favourite=True)
     setView(video_type +'s', video_type + '-view')
 
 
