@@ -1,3 +1,34 @@
+[B]v1.22.0 (Wednesday, 20 January 2016):[/B]
+  - Added KingFiles resolver
+  - Updated Real-Debrid resolver to use new api
+
+[B]v1.21.0 (Monday, 11 January 2016):[/B]
+  - Fixed encoding error
+  
+[B]v1.20.0 (Wednesday, 23 December 2015):[/B]
+  - Added UploadX resolver
+
+[B]v1.19.0 (Friday, 19 December 2015):[/B]
+  - Fixed HugeFiles resolver
+  - Fixed Upload.af resolver
+
+[B]v1.18.0 (Tuesday, 24 November 2015):[/B]
+  - Fixed HugeFiles resolver
+  
+[B]v1.17.0 (Tuesday, 24 November 2015):[/B]
+  - Fixed small bug with Recently Added lists
+  - Fixed ClicknUpload resolver
+  - Added new Upload.af resolver
+  - Added indicators for hosts that Real-Debrid supports, shown by a yellow *RD next to the host name
+  - Temporarily removed the main screen Recently Added, Latest Releases, Watching Now sections, don't worry they will be back very soon
+
+[B]v1.16.0 (Monday, 19 October 2015):[/B]
+  - Adjusted resume support, hopefully makes the resume more fluid
+  - Added Recently Watched support, enable/disable in the addon settings
+  - Added Watch Queue support, similar to Netflix, queue items to watch later, when you finish watching they are removed from the list
+  - Fixed 180Upload resolver issue when the captcha is needed
+  - Fixed HD and DVD tags not correctly showing
+
 [B]v1.15.0 (Tuesday, 06 October 2015):[/B]
   - Added resume support
   - Fixed HugeFile resolver
